@@ -8,9 +8,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Soul Arena — Mobile Edition</title>
 <style>
-html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#05050a;touch-action:none}
-body{display:flex;justify-content:center;align-items:center}
-canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;image-rendering:pixelated}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#05050a;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body{position:fixed;inset:0;display:flex;justify-content:center;align-items:center}
+canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;image-rendering:pixelated;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#safeAreaProbe{position:fixed;inset:0;visibility:hidden;pointer-events:none;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px)}
 #rotateHint{display:none;position:fixed;inset:0;z-index:10;align-items:center;justify-content:center;text-align:center;padding:28px;box-sizing:border-box;background:rgba(5,5,10,.96);color:#f3f4ff;font:600 18px/1.5 system-ui,-apple-system,sans-serif;touch-action:none}
 #rotateHint span{display:block;margin-top:10px;font-size:13px;font-weight:400;color:#aab1ce}
 #fullscreenBtn{position:fixed;z-index:30;top:calc(env(safe-area-inset-top,0px) + 8px);right:calc(env(safe-area-inset-right,0px) + 8px);width:36px;height:32px;padding:0;border:1px solid rgba(190,200,255,.28);border-radius:8px;background:rgba(12,13,28,.78);color:#f3f4ff;font:700 22px/1 system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.25);touch-action:manipulation;-webkit-tap-highlight-color:transparent;backdrop-filter:blur(6px)}
@@ -23,6 +24,7 @@ html:fullscreen,html:fullscreen body{width:100%;height:100%;background:#05050a}
 </head>
 <body>
 <div id="rotateHint">Поверни телефон горизонтально<span>Soul Arena удобнее играть в альбомной ориентации</span></div>
+<div id="safeAreaProbe" aria-hidden="true"></div>
 <canvas id="game" width="640" height="440"></canvas>
 <button id="fullscreenBtn" type="button" aria-label="Включить полноэкранный режим" title="Полноэкранный режим">⛶</button>
 <div id="fullscreenToast" role="status" aria-live="polite"></div>
@@ -316,14 +318,17 @@ Platform.submitScore(score);Platform.gameplayStop();clearRunSave();profileSave()
 const Touch={on:('ontouchstart'in window)||(navigator.maxTouchPoints||0)>0,jid:-1,bx:0,by:0,dx:0,dy:0,aim:false,aimId:-1,ax:0,ay:0,attackId:-1,secondaryId:-1,shiftId:-1,ultId:-1,menuId:-1,targetId:-1,target:null,targetStart:0,targetX:0,targetY:0,targetTimer:null};
 const MobileControls={attack:false,secondary:false};
 const MobileInspect={target:null};
+let gameViewport={x:0,y:GOY,w:VIEW_W,h:GH,cx:VIEW_W/2,cy:GOY+GH/2,safeLeft:0,safeRight:0,safeTop:0,safeBottom:0};
 function cameraZoom(){return Touch.on?MOBILE_CAMERA_ZOOM:1;}
-function screenToWorldX(x){return cam.x+(x-VIEW_W/2)/cameraZoom();}
-function screenToWorldY(y){return cam.y+(y-(GOY+GH/2))/cameraZoom();}
-function worldToScreenX(x){return VIEW_W/2+(x-cam.x)*cameraZoom();}
-function worldToScreenY(y){return GOY+GH/2+(y-cam.y)*cameraZoom();}
-function mobileControlHit(x,y){const buttons=[['attack',584,293,39],['secondary',510,330,34],['shift',584,374,34],['ult',510,399,34]];let best=null,bestD=Infinity;for(const b of buttons){const d=Math.hypot(x-b[1],y-b[2]);if(d<=b[3]+7&&d<bestD){best=b[0];bestD=d;}}return best;}
-const MOBILE_JOY_HOME={x:104,y:350};
-function mobileJoystickHit(x,y){return x>=0&&x<215&&y>210&&y<435&&Math.hypot(x-MOBILE_JOY_HOME.x,y-MOBILE_JOY_HOME.y)<104;}
+function screenToWorldX(x){return cam.x+(x-gameViewport.cx)/cameraZoom();}
+function screenToWorldY(y){return cam.y+(y-gameViewport.cy)/cameraZoom();}
+function worldToScreenX(x){return gameViewport.cx+(x-cam.x)*cameraZoom();}
+function worldToScreenY(y){return gameViewport.cy+(y-cam.y)*cameraZoom();}
+function mobileJoystickHome(){return{x:gameViewport.x+104,y:gameViewport.y+gameViewport.h-50};}
+function mobileMenuHome(){return{x:gameViewport.cx,y:Math.min(VIEW_H-18,gameViewport.y+gameViewport.h+20)};}
+function mobileButtonLayout(){const right=gameViewport.x+gameViewport.w;const bottom=gameViewport.y+gameViewport.h;return[['attack',right-56,bottom-107,39],['secondary',right-130,bottom-70,34],['shift',right-56,bottom-26,34],['ult',right-130,bottom-1,34]];}
+function mobileControlHit(x,y){const buttons=mobileButtonLayout();let best=null,bestD=Infinity;for(const b of buttons){const d=Math.hypot(x-b[1],y-b[2]);if(d<=b[3]+9&&d<bestD){best=b[0];bestD=d;}}return best;}
+function mobileJoystickHit(x,y){const j=mobileJoystickHome();return x>=gameViewport.x&&x<Math.min(gameViewport.x+235,VIEW_W)&&y>j.y-145&&y<gameViewport.y+gameViewport.h+24&&Math.hypot(x-j.x,y-j.y)<112;}
 function touchPoint(t,c){const r=c.getBoundingClientRect();return{x:(t.clientX-r.left)*(c.width/r.width),y:(t.clientY-r.top)*(c.height/r.height)};}
 function findMobileTarget(x,y){
  const wx=screenToWorldX(x),wy=screenToWorldY(y);let best=null,bd=1e9;
@@ -369,11 +374,11 @@ const beginMobileInput=(id,x,y)=>{
  Touch.on=true;
  if(CasinoPick.active){const cw=142,gap=10,left=(VIEW_W-(cw*3+gap*2))/2,top=145;for(let i=0;i<3;i++){const bx=left+i*(cw+gap);if(x>=bx&&x<=bx+cw&&y>=top&&y<=top+112){chooseCasinoArtifact(i);break;}}return true;}
  if(GameState.levelUpPending){const n=GameState.levelUpChoices.length;for(let i=0;i<n;i++){const bx=cardLeft(i,n);if(x>=bx&&x<=bx+CARD_W&&y>=CARD_Y&&y<=CARD_Y+CARD_H){selectUpgrade(i);break;}}return true;}
- if(x>=296&&x<=344&&y>=405){Touch.menuId=id;saveRun();APP.screen='menu';Platform.gameplayStop();return true;}
+ const menu=mobileMenuHome();if(Math.hypot(x-menu.x,y-menu.y)<29){Touch.menuId=id;saveRun();APP.screen='menu';Platform.gameplayStop();return true;}
  if(Touch.jid<0&&mobileJoystickHit(x,y)){
-  Touch.jid=id;Touch.bx=MOBILE_JOY_HOME.x;Touch.by=MOBILE_JOY_HOME.y;
-  Touch.dx=Math.max(-40,Math.min(40,x-MOBILE_JOY_HOME.x));
-  Touch.dy=Math.max(-40,Math.min(40,y-MOBILE_JOY_HOME.y));
+  const j=mobileJoystickHome();Touch.jid=id;Touch.bx=j.x;Touch.by=j.y;
+  Touch.dx=Math.max(-40,Math.min(40,x-j.x));
+  Touch.dy=Math.max(-40,Math.min(40,y-j.y));
   return true;
  }
  const mobileButton=mobileControlHit(x,y);
@@ -391,7 +396,7 @@ const beginMobileInput=(id,x,y)=>{
  return true;
 };
 const moveMobileInput=(id,x,y)=>{
- if(id===Touch.jid){Touch.dx=Math.max(-40,Math.min(40,x-MOBILE_JOY_HOME.x));Touch.dy=Math.max(-40,Math.min(40,y-MOBILE_JOY_HOME.y));}
+ if(id===Touch.jid){const j=mobileJoystickHome();Touch.dx=Math.max(-40,Math.min(40,x-j.x));Touch.dy=Math.max(-40,Math.min(40,y-j.y));}
  else if(id===Touch.aimId){Touch.ax=x;Touch.ay=y;Input.mouse.x=x;Input.mouse.y=y;}
  else if(id===Touch.targetId&&Touch.target&&Math.hypot(x-Touch.targetX,y-Touch.targetY)>24){clearTimeout(Touch.targetTimer);Touch.target=null;Touch.targetId=-1;MobileInspect.target=null;}
 };
@@ -405,57 +410,55 @@ const endMobileInput=(id,cancelled)=>{
  if(id===Touch.targetId){clearTimeout(Touch.targetTimer);if(!cancelled&&Touch.target&&Date.now()-Touch.targetStart<380)mobileUseTarget(Touch.target);Touch.targetId=-1;Touch.target=null;MobileInspect.target=null;}
  if(id===Touch.menuId)Touch.menuId=-1;
 };
-/* iOS Home Screen apps have a long-standing difference in Pointer Events / pointer capture.
-   Use native Touch Events there; Safari tabs and other browsers keep Pointer Events. */
+/* iOS Safari and Home Screen web apps use one native Touch Events path.
+   Capture at document level: standalone WebKit may retarget touch events away
+   from the canvas while the finger is moving. No pointer capture is required. */
+const isIOSDevice=/iPad|iPhone|iPod/.test(navigator.userAgent)||
+ (navigator.platform==='MacIntel'&&(navigator.maxTouchPoints||0)>1);
 const isIOSHomeScreen=!!(navigator.standalone ||
  (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
-const useNativeTouch=isIOSHomeScreen || !window.PointerEvent;
-c.style.touchAction='none';
-c.style.webkitUserSelect='none';
-c.style.userSelect='none';
+const useNativeTouch=isIOSDevice||isIOSHomeScreen||!window.PointerEvent;
+c.style.touchAction='none';c.style.webkitUserSelect='none';c.style.userSelect='none';
 if(!useNativeTouch){
  c.addEventListener('pointerdown',e=>{
   if(e.pointerType==='mouse')return;
   const q=touchPoint(e,c);const handled=beginMobileInput(e.pointerId,q.x,q.y);
-  if(handled){e.preventDefault();}
+  if(handled)e.preventDefault();
  },{passive:false});
- window.addEventListener('pointermove',e=>{
+ document.addEventListener('pointermove',e=>{
   if(e.pointerType==='mouse')return;
   const q=touchPoint(e,c);moveMobileInput(e.pointerId,q.x,q.y);
   if(e.pointerId===Touch.jid||e.pointerId===Touch.aimId||e.pointerId===Touch.targetId)e.preventDefault();
- },{passive:false});
- window.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')return;endMobileInput(e.pointerId,false);},{passive:false});
- window.addEventListener('pointercancel',e=>{if(e.pointerType==='mouse')return;endMobileInput(e.pointerId,true);},{passive:false});
+ },{passive:false,capture:true});
+ document.addEventListener('pointerup',e=>{if(e.pointerType!=='mouse')endMobileInput(e.pointerId,false);},{passive:false,capture:true});
+ document.addEventListener('pointercancel',e=>{if(e.pointerType!=='mouse')endMobileInput(e.pointerId,true);},{passive:false,capture:true});
 }else{
- /* Do not use setPointerCapture in an installed iOS web app. Track the original
-    touch identifier globally so movement continues even if WebKit retargets it. */
- c.addEventListener('touchstart',e=>{
-  Touch.on=true;
-  let handled=false;
+ const isExcludedTouchTarget=target=>!!(target&&target.closest&&target.closest('#fullscreenBtn,#fullscreenToast,#rotateHint'));
+ document.addEventListener('touchstart',e=>{
+  if(isExcludedTouchTarget(e.target))return;
+  Touch.on=true;let handled=false;const rect=c.getBoundingClientRect();
   for(const t of e.changedTouches){
+   if(t.clientX<rect.left||t.clientX>rect.right||t.clientY<rect.top||t.clientY>rect.bottom)continue;
    const q=touchPoint(t,c);
    if(APP.screen!=='game'){
-    /* In standalone mode touchstart is prevented to suppress iOS gestures,
-       so dispatch canvas-menu buttons here instead of relying on a synthetic click. */
     for(const b of uiButtons){if(!b.disabled&&q.x>=b.x&&q.x<=b.x+b.w&&q.y>=b.y&&q.y<=b.y+b.h){b.cb();handled=true;break;}}
-   }else{
-    beginMobileInput(t.identifier,q.x,q.y);handled=true;
-   }
+   }else{beginMobileInput(t.identifier,q.x,q.y);handled=true;}
   }
   if(handled)e.preventDefault();
- },{passive:false});
- window.addEventListener('touchmove',e=>{
-  for(const t of e.changedTouches){const q=touchPoint(t,c);moveMobileInput(t.identifier,q.x,q.y);}
-  if(Touch.jid>=0||Touch.aimId>=0||Touch.targetId>=0)e.preventDefault();
- },{passive:false});
- window.addEventListener('touchend',e=>{
-  for(const t of e.changedTouches)endMobileInput(t.identifier,false);
-  e.preventDefault();
- },{passive:false});
- window.addEventListener('touchcancel',e=>{
-  for(const t of e.changedTouches)endMobileInput(t.identifier,true);
-  e.preventDefault();
- },{passive:false});
+ },{passive:false,capture:true});
+ document.addEventListener('touchmove',e=>{
+  let active=false;
+  for(const t of e.changedTouches){const q=touchPoint(t,c);moveMobileInput(t.identifier,q.x,q.y);if(t.identifier===Touch.jid||t.identifier===Touch.aimId||t.identifier===Touch.targetId)active=true;}
+  if(active)e.preventDefault();
+ },{passive:false,capture:true});
+ document.addEventListener('touchend',e=>{
+  let active=false;for(const t of e.changedTouches){if(t.identifier===Touch.jid||t.identifier===Touch.aimId||t.identifier===Touch.attackId||t.identifier===Touch.secondaryId||t.identifier===Touch.shiftId||t.identifier===Touch.ultId||t.identifier===Touch.targetId)active=true;endMobileInput(t.identifier,false);}
+  if(active)e.preventDefault();
+ },{passive:false,capture:true});
+ document.addEventListener('touchcancel',e=>{
+  let active=false;for(const t of e.changedTouches){if(t.identifier===Touch.jid||t.identifier===Touch.aimId||t.identifier===Touch.attackId||t.identifier===Touch.secondaryId||t.identifier===Touch.shiftId||t.identifier===Touch.ultId||t.identifier===Touch.targetId)active=true;endMobileInput(t.identifier,true);}
+  if(active)e.preventDefault();
+ },{passive:false,capture:true});
 }
 },
 axis(){let x=0,y=0;if(this.keys['KeyW']||this.keys['ArrowUp'])y-=1;if(this.keys['KeyS']||this.keys['ArrowDown'])y+=1;if(this.keys['KeyA']||this.keys['ArrowLeft'])x-=1;if(this.keys['KeyD']||this.keys['ArrowRight'])x+=1;
@@ -1580,13 +1583,13 @@ function drawMobileAbilityButton(x,y,r,slot,col,pressed){
  ctx.restore();
 }
 function drawMobileControls(){if(!Touch.on||APP.screen!=='game'||GameState.levelUpPending||CasinoPick.active)return;
- const jx=Touch.jid>=0?Touch.bx:MOBILE_JOY_HOME.x,jy=Touch.jid>=0?Touch.by:MOBILE_JOY_HOME.y;
+ const j=mobileJoystickHome(),jx=Touch.jid>=0?Touch.bx:j.x,jy=Touch.jid>=0?Touch.by:j.y,b=mobileButtonLayout(),m=mobileMenuHome();
  ctx.save();ctx.globalAlpha=.68;ctx.strokeStyle='#d7deff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(jx,jy,48,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#b7c4e7';ctx.beginPath();ctx.arc(jx+Touch.dx,jy+Touch.dy,18,0,Math.PI*2);ctx.fill();ctx.restore();
- drawMobileAbilityButton(584,293,39,'attack','#54f7e0',MobileControls.attack);
- drawMobileAbilityButton(510,330,34,'secondary','#b6a0ff',MobileControls.secondary);
- drawMobileAbilityButton(584,374,34,'shift','#54f7e0',Touch.shiftId>=0);
- drawMobileAbilityButton(510,399,34,'ult','#ff7de2',Touch.ultId>=0);
- ctx.save();ctx.globalAlpha=.84;ctx.fillStyle='#080b14';ctx.strokeStyle='#9aa7bd';ctx.lineWidth=2;ctx.beginPath();ctx.arc(320,420,17,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();drawLabel('M',320,417,2,'#ffffff','center',false);
+ drawMobileAbilityButton(b[0][1],b[0][2],b[0][3],'attack','#54f7e0',MobileControls.attack);
+ drawMobileAbilityButton(b[1][1],b[1][2],b[1][3],'secondary','#b6a0ff',MobileControls.secondary);
+ drawMobileAbilityButton(b[2][1],b[2][2],b[2][3],'shift','#54f7e0',Touch.shiftId>=0);
+ drawMobileAbilityButton(b[3][1],b[3][2],b[3][3],'ult','#ff7de2',Touch.ultId>=0);
+ ctx.save();ctx.globalAlpha=.84;ctx.fillStyle='#080b14';ctx.strokeStyle='#9aa7bd';ctx.lineWidth=2;ctx.beginPath();ctx.arc(m.x,m.y,17,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();drawLabel('M',m.x,m.y-3,2,'#ffffff','center',false);
 }
 function drawTouchUI(){drawMobileControls();}
 function rd2(){return getCurrentRoomData();}
@@ -1849,10 +1852,10 @@ else{glowCircle(X,Y,8,'rgba(255,80,180,0.35)');ctx.fillStyle='#ff55bb';ctx.fillR
 function drawMeleeArc(){if(Melee.active){const t=1-Melee.timer/Melee.duration;ctx.save();ctx.translate(Math.round(player.x),Math.round(player.y));ctx.rotate(Melee.angle);ctx.fillStyle=curClass.id==='warrior'?'rgba(255,240,200,0.45)':curClass.id==='assassin'?'rgba(136,255,136,0.4)':'rgba(255,255,255,0.35)';ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,curClass.meleeRange,-curClass.meleeArc/2+t*.6,curClass.meleeArc/2);ctx.closePath();ctx.fill();ctx.restore();}
 if(SlamFx>0){const t=SlamFx/.3;ctx.save();ctx.translate(Math.round(player.x),Math.round(player.y));ctx.globalAlpha=t;ctx.strokeStyle='#ffcc66';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,50+(1-t)*30,0,7);ctx.stroke();ctx.restore();ctx.globalAlpha=1;}}
 function drawGameWorld(alpha){
-ctx.fillStyle='#0a0c12';ctx.fillRect(0,0,VIEW_W,TOPB);ctx.fillRect(0,GOY+GH,VIEW_W,VIEW_H-GOY-GH);
-if(GameState.transitioning){ctx.fillStyle='#0a0a0f';ctx.fillRect(0,GOY,VIEW_W,GH);drawHUD();return;}
+const view=gameViewport;ctx.fillStyle='#0a0c12';ctx.fillRect(0,0,VIEW_W,VIEW_H);
+if(GameState.transitioning){ctx.fillStyle='#0a0a0f';ctx.fillRect(view.x,view.y,view.w,view.h);drawHUD();return;}
 const worldZoom=cameraZoom();
-ctx.save();ctx.beginPath();ctx.rect(0,GOY,VIEW_W,GH);ctx.clip();ctx.translate(VIEW_W/2-ScreenShake.x,GOY+GH/2-ScreenShake.y);ctx.scale(worldZoom,worldZoom);ctx.translate(-cam.x,-cam.y);
+ctx.save();ctx.beginPath();ctx.rect(view.x,view.y,view.w,view.h);ctx.clip();ctx.translate(view.cx-ScreenShake.x,view.cy-ScreenShake.y);ctx.scale(worldZoom,worldZoom);ctx.translate(-cam.x,-cam.y);
 ctx.drawImage(Room.canvas,0,0);drawTraps();drawSpawnTelegraph();
 const rx=player.px+(player.x-player.px)*alpha,ry=player.py+(player.y-player.py)*alpha;
 const D=getDecor();const room=getCurrentRoomData();
@@ -1865,12 +1868,23 @@ drawList.push({baseY:player.y+8,fn:()=>drawPlayer(rx,ry)});
 drawList.sort((a,b)=>a.baseY-b.baseY);for(const d of drawList)d.fn();
 drawNecro();drawSingularity();drawMageUltimate();drawBeam();drawWhirl();drawDashTrail();drawBombs();drawPickups();drawChest();drawPortal();drawDoors();drawBullets();drawMeleeArc();drawParticles();drawFloatTexts();
 ctx.restore();
-ctx.drawImage(vignetteCanvas,0,GOY);
+ctx.save();ctx.beginPath();ctx.rect(view.x,view.y,view.w,view.h);ctx.clip();ctx.drawImage(vignetteCanvas,0,GOY);ctx.restore();
 drawHUD();drawTooltip();drawArtHover();drawMobileControls();}
 /*-- MAIN --*/
 const STEP=1/60;
 const canvas=document.getElementById('game');
+const safeAreaProbe=document.getElementById('safeAreaProbe');
 const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
+function updateSafeArea(){
+ const r=canvas.getBoundingClientRect(),cs=window.getComputedStyle(safeAreaProbe);
+ const sx=VIEW_W/Math.max(1,r.width),sy=VIEW_H/Math.max(1,r.height);
+ const px=v=>Math.max(0,parseFloat(v)||0);
+ const left=Math.min(VIEW_W*.18,px(cs.paddingLeft)*sx),right=Math.min(VIEW_W*.18,px(cs.paddingRight)*sx);
+ const top=Math.min(VIEW_H*.14,px(cs.paddingTop)*sy),bottom=Math.min(VIEW_H*.14,px(cs.paddingBottom)*sy);
+ const x=left,y=Math.max(GOY,top),w=Math.max(VIEW_W*.55,VIEW_W-left-right),h=Math.max(GH*.55,Math.min(GOY+GH,VIEW_H-bottom)-Math.max(GOY,top));
+ gameViewport={x,y,w,h,cx:x+w/2,cy:y+h/2,safeLeft:left,safeRight:right,safeTop:top,safeBottom:bottom};
+}
+
 const fullscreenBtn=document.getElementById('fullscreenBtn');
 const fullscreenToast=document.getElementById('fullscreenToast');
 let fullscreenToastTimer=0;
@@ -1902,22 +1916,23 @@ fullscreenBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation(
 document.addEventListener('fullscreenchange',updateFullscreenButton);
 document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
 function resize(){
- /* visualViewport can report stale dimensions during iOS Home Screen startup;
-    prefer the layout viewport for installed apps and fall back safely. */
+ /* In standalone iOS, innerWidth/innerHeight describe the app viewport;
+    the safe-area probe separately provides the notch/home-indicator margins. */
  const standalone=!!(navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches));
  const vv=window.visualViewport;
  const vw=standalone?window.innerWidth:(vv&&vv.width>0?vv.width:window.innerWidth);
  const vh=standalone?window.innerHeight:(vv&&vv.height>0?vv.height:window.innerHeight);
  canvas.style.width=Math.max(1,vw)+'px';canvas.style.height=Math.max(1,vh)+'px';
+ updateSafeArea();
 }
-window.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,80));
-window.addEventListener('pageshow',resize);if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
-resize();
+window.addEventListener('resize',resize);window.addEventListener('focus',resize);window.addEventListener('orientationchange',()=>{setTimeout(resize,120);setTimeout(resize,320);});
+window.addEventListener('pageshow',()=>{setTimeout(resize,80);setTimeout(resize,260);});if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
+resize();setTimeout(resize,240);
 window.addEventListener('beforeunload',()=>{if(APP.screen==='game'&&!GameState.playerDead)saveRun();});
 window.addEventListener('pagehide',()=>{if(APP.screen==='game'&&!GameState.playerDead)saveRun();});
 window.addEventListener('blur',()=>{if(APP.screen==='game'&&!GameState.playerDead)APP.screen='pause';});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(APP.screen==='game'&&!GameState.playerDead)APP.screen='pause';if(AudioSys.ctx&&AudioSys.ctx.state==='running')AudioSys.ctx.suspend();}
-else{if(AudioSys.ctx&&AudioSys.ctx.state==='suspended')AudioSys.ctx.resume();}});
+else{resize();if(AudioSys.ctx&&AudioSys.ctx.state==='suspended')AudioSys.ctx.resume();}});
 const vignetteCanvas=document.createElement('canvas');vignetteCanvas.width=VIEW_W;vignetteCanvas.height=GH;
 (function(){const g=vignetteCanvas.getContext('2d');const gr=g.createRadialGradient(VIEW_W/2,GH/2,GH*.4,VIEW_W/2,GH/2,GH*.9);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,0.35)');g.fillStyle=gr;g.fillRect(0,0,VIEW_W,GH);})();
 const playerCanvas=document.createElement('canvas');playerCanvas.width=KNIGHT_W;playerCanvas.height=KNIGHT_H;
@@ -1976,8 +1991,9 @@ else if(curClass.id!=='warrior'&&curClass.id!=='mage')triggerMelee(player.aimAng
 updateMelee(dt);
 for(const t of Room.torches)if(particles.length<180&&Math.random()<dt*2.2)spawnParticle({x:t.cx+(Math.random()*5-2.5),y:t.baseY-8,vx:Math.random()*5-2.5,vy:-(6+Math.random()*9),life:.5+Math.random()*.6,maxLife:1.1,size:1,color:Math.random()<.5?'#ffb23c':'#ff7a2e'});
 updateBullets(dt);updateEnemies(dt);updatePickups(dt);updateParticles(dt);
-const k=Math.min(1,dt*7);cam.x+=(player.x-cam.x)*k;cam.y+=(player.y-cam.y)*k;
-const zoom=cameraZoom();cam.x=clampCam(cam.x,VIEW_W/zoom,Room.w);cam.y=clampCam(cam.y,GH/zoom,Room.h);}
+const k=Math.min(1,dt*10);cam.x+=(player.x-cam.x)*k;cam.y+=(player.y-cam.y)*k;
+/* Do not clamp the camera to room edges: keep the hero centred in corners too. */
+}
 let globalT=0,acc=0,last=performance.now();
 function frame(now){requestAnimationFrame(frame);let dt=(now-last)/1000;last=now;if(dt>.25)dt=.25;globalT+=dt;if(buyMsgT>0)buyMsgT-=dt;updateEmbers(dt);
 if(APP.screen==='game')gameUpdate(dt);
