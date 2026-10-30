@@ -6,9 +6,18 @@
 <meta name="theme-color" content="#1a120c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-orientations" content="landscape">
+<meta name="apple-mobile-web-app-title" content="Soul Arena">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Soul Arena">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <title>Soul Arena — Mobile Edition</title>
 <style>
-html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#1a120c;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:#1a120c;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+html{position:fixed;inset:0}
+body{height:100dvh;min-height:100dvh}
+canvas{touch-action:none;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 body{position:fixed;inset:0;display:flex;justify-content:center;align-items:center}
 canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;image-rendering:pixelated;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #safeAreaProbe{position:fixed;inset:0;visibility:hidden;pointer-events:none;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px)}
@@ -36,13 +45,36 @@ const VIEW_W=640,VIEW_H=440,TOPB=40,GH=375,GOY=25;
 const MOBILE_CAMERA_ZOOM=1.32;
 /*-- FONT --*/
 const FONT={'A':['.#.','#.#','###','#.#','#.#'],'B':['##.','#.#','##.','#.#','##.'],'C':['.##','#..','#..','#..','.##'],'D':['##.','#.#','#.#','#.#','##.'],'E':['###','#..','##.','#..','###'],'F':['###','#..','##.','#..','#..'],'G':['.##','#..','#.#','#.#','.##'],'H':['#.#','#.#','###','#.#','#.#'],'I':['###','.#.','.#.','.#.','###'],'J':['.##','..#','..#','#.#','.#.'],'K':['#.#','#.#','##.','#.#','#.#'],'L':['#..','#..','#..','#..','###'],'M':['#.#','###','###','#.#','#.#'],'N':['##.','#.#','#.#','#.#','#.#'],'O':['.#.','#.#','#.#','#.#','.#.'],'P':['##.','#.#','##.','#..','#..'],'Q':['.#.','#.#','#.#','###','..#'],'R':['##.','#.#','##.','#.#','#.#'],'S':['.##','#..','.#.','..#','##.'],'T':['###','.#.','.#.','.#.','.#.'],'U':['#.#','#.#','#.#','#.#','###'],'V':['#.#','#.#','#.#','#.#','.#.'],'W':['#.#','#.#','###','###','#.#'],'X':['#.#','#.#','.#.','#.#','#.#'],'Y':['#.#','#.#','.#.','.#.','.#.'],'Z':['###','..#','.#.','#..','###'],'0':['###','#.#','#.#','#.#','###'],'1':['.#.','##.','.#.','.#.','###'],'2':['###','..#','.#.','#..','###'],'3':['###','..#','.#.','..#','###'],'4':['#.#','#.#','###','..#','..#'],'5':['###','#..','###','..#','###'],'6':['###','#..','###','#.#','###'],'7':['###','..#','.#.','#..','#..'],'8':['###','#.#','###','#.#','###'],'9':['###','#.#','###','..#','###'],' ':['...','...','...','...','...'],'=':['...','###','...','###','...'],'#':['.#.','###','.#.','###','.#.'],'!':['.#.','.#.','.#.','...','.#.'],'?':['###','..#','.#.','...','.#.'],':':['...','.#.','...','.#.','...'],'.':['...','...','...','...','.#.'],',':['...','...','...','.#.','#..'],'-':['...','...','###','...','...'],'+':['...','.#.','###','.#.','...'],'/':['..#','..#','.#.','#..','#..'],'>':['#..','.#.','..#','.#.','#..'],'<':['..#','.#.','#..','.#.','..#'],'%':['#.#','..#','.#.','#..','#.#'],'*':['#.#','.#.','###','.#.','#.#'],"'":['.#.','.#.','...','...','...']};
-function textWidth(s,sc){const n=String(s).length;return n?((n*4-1)*sc):0;}
+const RU_PHRASES={
+ 'SOUL ARENA':'АРЕНА ДУШ','SOUL ARENA - THE BEST GAME':'АРЕНА ДУШ — ЛУЧШАЯ ИГРА',
+ 'GUNSLINGER. SHOTGUN (LMB), PISTOL (RMB). IGNORES TRAPS.':'СТРЕЛОК. ДРОБОВИК (ЛКМ), ПИСТОЛЕТ (ПКМ). НЕ БОИТСЯ ЛОВУШЕК.',
+ 'HAMMER SWINGS, DIRECTIONAL SHIELD, THROW-STUN-RECLAIM HAMMER, WHIRL.':'УДАРЫ МОЛОТОМ, ЩИТ ПО НАПРАВЛЕНИЮ, БРОСОК МОЛОТА С ОГЛУШЕНИЕМ И ВОЗВРАТОМ, ВИХРЬ.',
+ 'MANA BEAM, CHARGE BOLT, SINGULARITY STRIKE, STAFF-SPECIFIC ULTIMATE.':'ЛУЧ МАНЫ, ЗАРЯДНЫЙ СНАРЯД, УДАР СИНГУЛЯРНОСТИ И УЛЬТА ПОСОХА.',
+ 'KUNAI/SHURIKEN/SMOKE OR KATANA/PARRY/DANCE. CRIT 35%.':'КУНАИ, СЮРИКЕНЫ И ДЫМ ИЛИ КАТАНА, ПАРИРОВАНИЕ И ТАНЕЦ. КРИТ 35%.',
+ 'HOMING RAMP BEAM, DEATH CLOUD CONE, SKULL BOOMERANGS, SKELETON ARMY.':'САМОНАВОДЯЩИЙСЯ ЛУЧ, ОБЛАКО СМЕРТИ, ЧЕРЕПА-БУМЕРАНГИ И АРМИЯ СКЕЛЕТОВ.',
+ 'COMBAT ROLL':'БОЕВОЙ ПЕРЕКАТ','DYNAMITE THROW':'БРОСОК ДИНАМИТА','THROW & RECLAIM HAMMER':'БРОСОК И ВОЗВРАТ МОЛОТА','BLADE WHIRL 2.5S':'ВИХРЬ КЛИНКОВ 2,5 СЕК','SINGULARITY STRIKE':'УДАР СИНГУЛЯРНОСТИ','STAFF ELEMENTAL ULTIMATE':'СТИХИЙНАЯ УЛЬТА ПОСОХА','STANCE SWITCH':'СМЕНА СТОЙКИ','SMOKE / SHADOW DANCE':'ДЫМ / ТЕНЕВОЙ ТАНЕЦ','SOUL SKULLS (HEAL ON RETURN)':'ЧЕРЕПА ДУШ (ЛЕЧЕНИЕ ПРИ ВОЗВРАТЕ)','RISE SKELETONS (SPENDS SOULS)':'ПОДЪЁМ СКЕЛЕТОВ (ТРАЧУТ ДУШИ)',
+ 'IRON PLATE':'ЖЕЛЕЗНАЯ ПЛИТА','THORNS MAIL':'КОЛЬЧУГА ШИПОВ','STORM CHARM':'АМУЛЕТ БУРИ','COIN MAGNET':'МАГНИТ МОНЕТ','CRIT EYE':'ГЛАЗ КРИТА','HEART LOCKET':'КУЛОН СЕРДЦА','SWIFT BOOTS':'САПОГИ СКОРОСТИ','MANA AMULET':'АМУЛЕТ МАНЫ','HOLLOW CROWN':'ПУСТАЯ КОРОНА','DOUBLE-EDGE IDOL':'ИДОЛ ДВУХ ЛЕЗВИЙ','MIRROR SHARD':'ОСКОЛОК ЗЕРКАЛА','BLOODSTONE':'КРОВАВЫЙ КАМЕНЬ',
+ 'SWIFT REFLEXES':'БЫСТРЫЕ РЕФЛЕКСЫ','FOCUS RITUAL':'РИТУАЛ ФОКУСА','POWER RUNE':'РУНА СИЛЫ','BRUTAL FORCE':'ЖЕСТОКАЯ СИЛА','VITALITY':'ЖИВУЧЕСТЬ','AGILITY':'ЛОВКОСТЬ','SOUL VESSEL':'СОСУД ДУШ','CURSED SKULLS':'ПРОКЛЯТЫЕ ЧЕРЕПА','SOUL FEAST':'ПИР ДУШ','BONE GUARD':'КОСТЯНАЯ ЗАЩИТА','HEAVY HAMMER':'ТЯЖЁЛЫЙ МОЛОТ','BLADE STORM':'ШТОРМ КЛИНКОВ','SHIELD REFLEX':'РЕФЛЕКС ЩИТА',
+ 'NEW RUN (ENDLESS)':'НОВЫЙ ЗАБЕГ (БЕСКОНЕЧНЫЙ)','CONTINUE RUN':'ПРОДОЛЖИТЬ ЗАБЕГ','DAILY CHALLENGE':'ЕЖЕДНЕВНЫЙ ЗАБЕГ','ROGUELIKE ARENA COMBAT':'АРЕНА В СТИЛЕ ROGUELIKE','SELECT YOUR CLASS':'ВЫБЕРИ КЛАСС','START RUN':'НАЧАТЬ ЗАБЕГ','MASTER VOLUME':'ОБЩАЯ ГРОМКОСТЬ','SCREEN SHAKE':'ТРЯСКА ЭКРАНА','DAMAGE NUMBERS':'ЧИСЛА УРОНА','RESET PROGRESS':'СБРОСИТЬ ПРОГРЕСС','ERASE ALL PROGRESS?':'УДАЛИТЬ ВЕСЬ ПРОГРЕСС?','MOUSE WHEEL TO SCROLL':'КОЛЁСИКО МЫШИ — ПРОКРУТКА','CLICK OR PRESS 1 2 3':'НАЖМИ ИЛИ ВЫБЕРИ 1 2 3','LMB ATK  RMB SKL2  SHIFT SKL1  SPACE ULT  E USE  ESC MENU':'ЛКМ АТАКА  ПКМ НАВЫК  SHIFT НАВЫК  SPACE УЛЬТА  E ВЗЯТЬ  ESC МЕНЮ','ONE OFFER ONLY — PRESS 1, 2 OR 3':'ОДИН ВЫБОР — НАЖМИ 1, 2 ИЛИ 3','REVIVE NOW OR LOSE THE RUN':'ВОЗРОДИСЬ ИЛИ ПОТЕРЯЙ ЗАБЕГ','YOUR RUN IS SAVED — CONTINUE ANYTIME':'ЗАБЕГ СОХРАНЁН — МОЖНО ПРОДОЛЖИТЬ ПОЗЖЕ','REVIVE REWARD GRANTED ON COMPLETION':'НАГРАДА ЗА ВОЗРОЖДЕНИЕ ВЫДАНА','YOU CAN CLOSE THIS TAB NOW':'МОЖНО ЗАКРЫТЬ ЭТУ ВКЛАДКУ','THANKS FOR PLAYING':'СПАСИБО ЗА ИГРУ','CHOOSE YOUR RELIC':'ВЫБЕРИ РЕЛИКВИЮ','NO RUNS YET':'ЗАБЕГОВ ПОКА НЕТ','UPGRADES ARE PER CLASS':'УЛУЧШЕНИЯ ЗАВИСЯТ ОТ КЛАССА','BUILD 28 - PLATFORM:':'СБОРКА 28 — ПЛАТФОРМА:','AUTO AIM':'АВТОНАВЕДЕНИЕ','LANGUAGE':'ЯЗЫК','RUSSIAN':'РУССКИЙ','ENGLISH':'АНГЛИЙСКИЙ','SETTINGS':'НАСТРОЙКИ','ACHIEVEMENTS':'ДОСТИЖЕНИЯ','PAUSED':'ПАУЗА','LEVEL UP':'НОВЫЙ УРОВЕНЬ','YOU DIED':'ТЫ ПОГИБ','TOP RUNS':'ЛУЧШИЕ ЗАБЕГИ','META SHOP':'МАГАЗИН','PROFILE':'ПРОФИЛЬ','BACK':'НАЗАД','LOCKED':'ЗАКРЫТО','CLAIMED':'ПОЛУЧЕНО','EMPTY':'ПУСТО','SOLD':'ПРОДАНО','YES':'ДА','NO':'НЕТ','ON':'ВКЛ','OFF':'ВЫКЛ','E OPEN':'E ОТКРЫТЬ','E TAKE':'E ВЗЯТЬ','E USE':'E ИСПОЛЬЗОВАТЬ','FLOOR':'ЭТАЖ','TIME':'ВРЕМЯ','KILLS':'УБИЙСТВА','COINS':'МОНЕТЫ','CRYSTALS':'КРИСТАЛЛЫ','CLASS':'КЛАСС','SOULS':'ДУШИ','MINIONS':'ПРИСЛУЖНИКИ','MANA':'МАНА','WAVE':'ВОЛНА','LEVEL':'УРОВЕНЬ','STANCE':'СТОЙКА','POISON WAVE!':'ВОЛНА ЯДА!','RESPAWN IN':'ВОЗРОЖДЕНИЕ ЧЕРЕЗ','ADVERTISEMENT':'РЕКЛАМА','REWARDED VIDEO PLAYING VIA PLATFORM SDK':'ВОСПРОИЗВОДИТСЯ РЕКЛАМНОЕ ВИДЕО'
+}
+const RU_WORDS={
+ 'WARRIOR':'ВОИН','ROGUE':'ПЛУТ','MAGE':'МАГ','ASSASSIN':'УБИЙЦА','NECROMANCER':'НЕКРОМАНТ',
+ 'FLOOR':'ЭТАЖ','TIME':'ВРЕМЯ','KILLS':'УБИЙСТВА','COINS':'МОНЕТЫ','CRYSTALS':'КРИСТАЛЛЫ','CLASS':'КЛАСС','SOULS':'ДУШИ','MINIONS':'МИНЬОНЫ','MANA':'МАНА','WAVE':'ВОЛНА','LEVEL':'УРОВЕНЬ','STANCE':'СТОЙКА','HP':'HP','MAX':'МАКС','DMG':'УРОН','DAMAGE':'УРОН','ATTACK':'АТАКА','SHIELD':'ЩИТ','WHIRL':'ВИХРЬ','HAMMER':'МОЛОТ','CHARGE':'ЗАРЯД','SKULLS':'ЧЕРЕПА','SKELETONS':'СКЕЛЕТЫ','FIRE':'ОГОНЬ','POISON':'ЯД','LIGHTNING':'МОЛНИЯ','STAFF':'ПОСОХ','BOMB':'БОМБА','DASH':'РЫВОК','SMOKE':'ДЫМ','GRAVITY':'ГРАВИТАЦИЯ','SINGULARITY':'СИНГУЛЯРНОСТЬ','ULT':'УЛЬТА','SKILL':'НАВЫК','ATK':'АТАКА','COOLDOWN':'ПЕРЕЗАРЯДКА','SPEED':'СКОРОСТЬ','ARMOR':'БРОНЯ','CRIT':'КРИТ','CRITICAL':'КРИТИЧЕСКИЙ','HEALTH':'ЗДОРОВЬЕ','HEAL':'ЛЕЧЕНИЕ','HEALING':'ЛЕЧЕНИЕ','DURATION':'ДЛИТЕЛЬНОСТЬ','RANGE':'ДИСТАНЦИЯ','RADIUS':'РАДИУС','DAMAGE':'УРОН','BONUS':'БОНУС','UPGRADE':'УЛУЧШЕНИЕ','UPGRADES':'УЛУЧШЕНИЯ','REWARD':'НАГРАДА','REWARDS':'НАГРАДЫ','SHOP':'МАГАЗИН','BUY':'КУПИТЬ','SELL':'ПРОДАТЬ','COST':'ЦЕНА','PRICE':'ЦЕНА','FREE':'БЕСПЛАТНО','DAILY':'ЕЖЕДНЕВНО','CHALLENGE':'ИСПЫТАНИЕ','ENDLESS':'БЕСКОНЕЧНЫЙ','RUN':'ЗАБЕГ','CONTINUE':'ПРОДОЛЖИТЬ','NEW':'НОВЫЙ','SELECT':'ВЫБРАТЬ','CHOOSE':'ВЫБРАТЬ','START':'СТАРТ','BACK':'НАЗАД','MENU':'МЕНЮ','PAUSE':'ПАУЗА','PAUSED':'ПАУЗА','SETTINGS':'НАСТРОЙКИ','ACHIEVEMENTS':'ДОСТИЖЕНИЯ','PROFILE':'ПРОФИЛЬ','LOCKED':'ЗАКРЫТО','CLAIMED':'ПОЛУЧЕНО','EMPTY':'ПУСТО','SOLD':'ПРОДАНО','BOSS':'БОСС','BOSSES':'БОССЫ','ENEMY':'ВРАГ','ENEMIES':'ВРАГИ','KILL':'УБИЙСТВО','FIRST':'ПЕРВЫЙ','BLOOD':'КРОВЬ','SOUL':'ДУША','SOULS':'ДУШИ','ARTIFACT':'АРТЕФАКТ','ARTIFACTS':'АРТЕФАКТЫ','RELIC':'РЕЛИКВИЯ','RELICS':'РЕЛИКВИИ','WEAPON':'ОРУЖИЕ','WEAPONS':'ОРУЖИЕ','ITEM':'ПРЕДМЕТ','ITEMS':'ПРЕДМЕТЫ','FLOOR':'ЭТАЖ','ROOM':'КОМНАТА','ROOMS':'КОМНАТЫ','WALL':'СТЕНА','WALLS':'СТЕНЫ','DUNGEON':'ПОДЗЕМЕЛЬЕ','SWAMP':'БОЛОТО','FROST':'МОРОЗ','INFERNO':'АД','FIRE':'ОГОНЬ','ICE':'ЛЁД','POISON':'ЯД','LIGHTNING':'МОЛНИЯ','ELEMENTAL':'СТИХИЙНЫЙ','MANA':'МАНА','AMMO':'ПАТРОНЫ','COINS':'МОНЕТЫ','CRYSTAL':'КРИСТАЛЛ','CRYSTALS':'КРИСТАЛЛЫ','SOULS':'ДУШИ','TIME':'ВРЕМЯ','KILLS':'УБИЙСТВА','LEVEL':'УРОВЕНЬ','WAVE':'ВОЛНА','WAVES':'ВОЛНЫ','MINIONS':'МИНЬОНЫ','BURN':'ГОРЕНИЕ','FROZEN':'ЗАМОРОЖЕН','SLOW':'ЗАМЕДЛЕНИЕ','FAST':'БЫСТРЫЙ','SPEED':'СКОРОСТЬ','DODGE':'УКЛОНЕНИЕ','CRIT':'КРИТ','CHANCE':'ШАНС','LUCK':'УДАЧА','DAMAGE':'УРОН','TAKE':'ВЗЯТЬ','OPEN':'ОТКРЫТЬ','USE':'ИСПОЛЬЗОВАТЬ','PRESS':'НАЖМИ','CLICK':'НАЖМИ','HOLD':'УДЕРЖИВАЙ','TO':'ДЛЯ','OR':'ИЛИ','AND':'И','ON':'ВКЛ','OFF':'ВЫКЛ','YES':'ДА','NO':'НЕТ','NONE':'НЕТ','LEFT':'ЛЕВО','RIGHT':'ПРАВО','UP':'ВВЕРХ','DOWN':'ВНИЗ','BEST':'ЛУЧШИЙ','TOP':'ТОП','RUNS':'ЗАБЕГИ','RESULT':'РЕЗУЛЬТАТ','SCORE':'СЧЁТ','RECORD':'РЕКОРД','SAVE':'СОХРАНИТЬ','SAVED':'СОХРАНЕНО','CONTINUE':'ПРОДОЛЖИТЬ','EXIT':'ВЫХОД','QUIT':'ВЫХОД','RESET':'СБРОС','PROGRESS':'ПРОГРЕСС','VOLUME':'ГРОМКОСТЬ','MASTER':'ОБЩАЯ','SCREEN':'ЭКРАН','SHAKE':'ТРЯСКА','PARTICLES':'ЧАСТИЦЫ','NUMBERS':'ЧИСЛА','AUTO':'АВТО','AIM':'НАВЕДЕНИЕ','LANGUAGE':'ЯЗЫК','RUSSIAN':'РУССКИЙ','ENGLISH':'АНГЛИЙСКИЙ','BUILD':'СБОРКА','PLATFORM':'ПЛАТФОРМА','MOUSE':'МЫШЬ','WHEEL':'КОЛЁСИКО','SCROLL':'ПРОКРУТКА','SPACE':'ПРОБЕЛ','SHIFT':'SHIFT','ESC':'ESC','LMB':'ЛКМ','RMB':'ПКМ','SPIN':'КРУТИТЬ','REROLL':'ПЕРЕБРОС','FLOOR':'ЭТАЖ','REVIVE':'ВОЗРОЖДЕНИЕ','RESPAWN':'ВОЗРОЖДЕНИЕ','DIED':'ПОГИБ','THANKS':'СПАСИБО','PLAYING':'ВОСПРОИЗВЕДЕНИЕ','ADVERTISEMENT':'РЕКЛАМА','UPGRADES':'УЛУЧШЕНИЯ','CLASS':'КЛАСС','PER':'ЗА','ONLY':'ТОЛЬКО','ONE':'ОДИН','OFFER':'ВЫБОР','CHOOSE':'ВЫБЕРИ','YOUR':'ТВОЙ','YOU':'ТЫ','DIED':'ПОГИБ','ANYTIME':'В ЛЮБОЕ ВРЕМЯ','CLOSE':'ЗАКРЫТЬ','TAB':'ВКЛАДКУ','NOW':'СЕЙЧАС','LOSE':'ПОТЕРЯТЬ','RUN':'ЗАБЕГ','ERASE':'УДАЛИТЬ','ALL':'ВЕСЬ','RESET':'СБРОС','PROGRESS':'ПРОГРЕСС','ARENA':'АРЕНА','ONCE':'РАЗ','RESUME':'ПРОДОЛЖИТЬ','AUTOSAVES':'АВТОСОХРАНЕНИЕ','SAVES':'СОХРАНЯЕТ','GRANTED':'ВЫДАНА','COMPLETION':'ЗАВЕРШЕНИИ','CAN':'МОЖНО','YET':'ПОКА','META':'МЕТА','MODS':'МОДИФИКАТОРЫ','REROLL':'ПЕРЕБРОС','ANYTIME':'В ЛЮБОЕ ВРЕМЯ','ROGUELIKE':'РОГАЛАЙК','GUNSLINGER':'СТРЕЛОК','KUNAI':'КУНАИ','SHURIKEN':'СЮРИКЕН','KATANA':'КАТАНА','PARRY':'ПАРИРОВАНИЕ','STRIKE':'УДАР','COMBAT':'БОЕВОЙ','SWINGS':'УДАРЫ','DIRECTIONAL':'НАПРАВЛЕННЫЙ','HEAL':'ЛЕЧЕНИЕ','RETURN':'ВОЗВРАТ','HOMING':'САМОНАВОДЯЩИЙСЯ','CONE':'КОНУС','BEAM':'ЛУЧ','RAMP':'НАРАСТАНИЕ','RELIC':'РЕЛИКВИЯ','RELICS':'РЕЛИКВИИ','SAVED':'СОХРАНЁН','EXIT':'ВЫХОД','CASINO':'КАЗИНО','CURSED':'ПРОКЛЯТЫЙ','STACK':'СТАК','STACKS':'СТАКА','BOON':'БЛАГОСЛОВЕНИЕ','CURSE':'ПРОКЛЯТИЕ','FOCUS':'ФОКУС','VIGOR':'ЖИВУЧЕСТЬ','HASTE':'УСКОРЕНИЕ','LUCK':'УДАЧА','EFFECT':'ЭФФЕКТ','EFFECTS':'ЭФФЕКТЫ','ENOUGH':'ДОСТАТОЧНО','NOT':'НЕТ','REACH':'ДОСТАТЬ','BLADE':'КЛИНОК','ROLL':'ПЕРЕКАТ','DIE':'КОСТЬ','STORM':'ШТОРМ','METEOR':'МЕТЕОР','BOLT':'СНАРЯД','CLOUD':'ОБЛАКО','SKULL':'ЧЕРЕП','SKELETON':'СКЕЛЕТ','RETURN':'ВОЗВРАТ','HEART':'СЕРДЦЕ','HEARTS':'СЕРДЦА','GOLD':'ЗОЛОТО','EPIC':'ЭПИЧЕСКИЙ','LEGENDARY':'ЛЕГЕНДАРНЫЙ','RARE':'РЕДКИЙ','COMMON':'ОБЫЧНЫЙ','UNCOMMON':'НЕОБЫЧНЫЙ','ELITE':'ЭЛИТНЫЙ','CHAMPION':'ЧЕМПИОН','BLOOD':'КРОВЬ','DUNGEON':'ПОДЗЕМЕЛЬЕ','SWAMP':'БОЛОТО','FROST':'МОРОЗ','INFERNO':'ПЕКЛО','SHARD':'ОСКОЛОК','SHARDS':'ОСКОЛКИ','PICKUP':'ПОДБОР','POTION':'ЗЕЛЬЕ','CHEST':'СУНДУК','PORTAL':'ПОРТАЛ','TRAP':'ЛОВУШКА','TRAPS':'ЛОВУШКИ','DODGE':'УКЛОНЕНИЕ','ARMOR':'БРОНЯ','CRITICAL':'КРИТИЧЕСКИЙ','CHANCE':'ШАНС','PERMANENT':'ПОСТОЯННЫЙ','TEMPORARY':'ВРЕМЕННЫЙ','UNTIL':'ДО','ENDS':'КОНЦА','LEFT':'ОСТАЛОСЬ','SECONDS':'СЕК','SECOND':'СЕК','MINUTES':'МИН','MINUTE':'МИН','LEVEL':'УРОВЕНЬ','UP':'ВВЕРХ','DOWN':'ВНИЗ','INCREASE':'УВЕЛИЧИТЬ','INCREASED':'УВЕЛИЧЕНО','DECREASE':'УМЕНЬШИТЬ','MORE':'БОЛЬШЕ','LESS':'МЕНЬШЕ','LOW':'МАЛО','HIGH':'ВЫСОКО','HIGHER':'ВЫШЕ','LOWER':'НИЖЕ','RANGE':'ДИСТАНЦИЯ','RADIUS':'РАДИУС','DURATION':'ДЛИТЕЛЬНОСТЬ','REGEN':'ВОССТАНОВЛЕНИЕ','REGENERATION':'ВОССТАНОВЛЕНИЕ','RELOAD':'ПЕРЕЗАРЯДКА','AMMO':'ПАТРОНЫ','MANA':'МАНА','SOUL':'ДУША','SOULS':'ДУШИ','MINION':'МИНЬОН','MINIONS':'МИНЬОНЫ','ENEMY':'ВРАГ','ENEMIES':'ВРАГИ','BOSS':'БОСС','BOSSES':'БОССЫ','KILL':'УБИЙСТВО','KILLS':'УБИЙСТВА','WAVE':'ВОЛНА','WAVES':'ВОЛНЫ','FLOOR':'ЭТАЖ','ROOM':'КОМНАТА','ROOMS':'КОМНАТЫ','ITEM':'ПРЕДМЕТ','ITEMS':'ПРЕДМЕТЫ','WEAPON':'ОРУЖИЕ','WEAPONS':'ОРУЖИЕ','ARTIFACT':'АРТЕФАКТ','ARTIFACTS':'АРТЕФАКТЫ','RELIC':'РЕЛИКВИЯ','RELICS':'РЕЛИКВИИ','BUY':'КУПИТЬ','SELL':'ПРОДАТЬ','COST':'ЦЕНА','PRICE':'ЦЕНА','FREE':'БЕСПЛАТНО','OPEN':'ОТКРЫТЬ','CLOSED':'ЗАКРЫТО','CLEARED':'ОЧИЩЕНО','COMPLETE':'ЗАВЕРШИТЬ','COMPLETED':'ЗАВЕРШЕНО','FAILED':'ПРОВАЛЕНО','SUCCESS':'УСПЕХ','WARNING':'ВНИМАНИЕ','ERROR':'ОШИБКА','HEALTH':'ЗДОРОВЬЕ','HEAL':'ЛЕЧЕНИЕ','HEALING':'ЛЕЧЕНИЕ','DAMAGE':'УРОН','ATTACK':'АТАКА','SHIELD':'ЩИТ','WHIRL':'ВИХРЬ','HAMMER':'МОЛОТ','CHARGE':'ЗАРЯД','SKULLS':'ЧЕРЕПА','SKELETONS':'СКЕЛЕТЫ','FIRE':'ОГОНЬ','POISON':'ЯД','LIGHTNING':'МОЛНИЯ','STAFF':'ПОСОХ','BOMB':'БОМБА','DASH':'РЫВОК','SMOKE':'ДЫМ','GRAVITY':'ГРАВИТАЦИЯ','SINGULARITY':'СИНГУЛЯРНОСТЬ','ULT':'УЛЬТА','SKILL':'НАВЫК','COOLDOWN':'ПЕРЕЗАРЯДКА','SPEED':'СКОРОСТЬ','BONUS':'БОНУС','UPGRADE':'УЛУЧШЕНИЕ','UPGRADES':'УЛУЧШЕНИЯ','REWARD':'НАГРАДА','REWARDS':'НАГРАДЫ','CASINO':'КАЗИНО','CURSED':'ПРОКЛЯТЫЙ','BOON':'БЛАГОСЛОВЕНИЕ','CURSE':'ПРОКЛЯТИЕ','FOCUS':'ФОКУС','VIGOR':'ЖИВУЧЕСТЬ','HASTE':'УСКОРЕНИЕ','EFFECT':'ЭФФЕКТ','STACK':'СТАК','STACKS':'СТАКА','ARENA':'АРЕНА','RUN':'ЗАБЕГ','RUNS':'ЗАБЕГИ','SCORE':'СЧЁТ','BEST':'ЛУЧШИЙ','RECORD':'РЕКОРД'
+}
+function uiLanguage(){return Profile.settings.language==='ru'?'ru':'en';}
+function translateUiText(value){let out=String(value).toUpperCase();if(uiLanguage()!=='ru')return out;
+ const phrases=Object.keys(RU_PHRASES).sort((a,b)=>b.length-a.length);for(const k of phrases)out=out.replace(new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),RU_PHRASES[k]);
+ const words=Object.keys(RU_WORDS).sort((a,b)=>b.length-a.length);for(const k of words)out=out.replace(new RegExp('\\b'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','g'),RU_WORDS[k]);return out;
+}
+function textWidth(s,sc){const n=Array.from(String(s)).length;return n?(uiLanguage()==='ru'?n*5*sc:n*4*sc-1*sc):0;}
 function drawGlyphs(s,x,y,sc,col){s=String(s).toUpperCase();ctx.fillStyle=col;for(let i=0;i<s.length;i++){const g=FONT[s[i]]||FONT['?'];const gx=x+i*4*sc;for(let r=0;r<5;r++)for(let c=0;c<3;c++)if(g[r][c]==='#')ctx.fillRect(gx+c*sc,y+r*sc,sc,sc);}}
-function drawLabel(s,x,y,sc,col,align,bg){s=String(s).toUpperCase();const w=textWidth(s,sc),h=5*sc;let sx=x;if(align==='center')sx=x-w/2;else if(align==='right')sx=x-w;sx=Math.round(sx);y=Math.round(y);if(bg!==false){ctx.fillStyle='rgba(4,4,12,0.8)';ctx.fillRect(sx-sc*2,y-sc,w+sc*4,h+sc*2);}drawGlyphs(s,sx+sc,y+sc,sc,'#000');drawGlyphs(s,sx,y,sc,col||'#fff');}
-function wrapText(s,maxW,sc){const w=String(s).toUpperCase().split(' ');const L=[];let c='';for(const x of w){const t=c?c+' '+x:x;if(textWidth(t,sc)<=maxW||!c)c=t;else{L.push(c);c=x;}}if(c)L.push(c);return L;}
+function drawLabel(s,x,y,sc,col,align,bg){s=translateUiText(s);const isRu=uiLanguage()==='ru'&&/[А-ЯЁ]/.test(s);const w=textWidth(s,sc),h=(isRu?7:5)*sc;let sx=x;if(align==='center')sx=x-w/2;else if(align==='right')sx=x-w;sx=Math.round(sx);y=Math.round(y);if(bg!==false){ctx.fillStyle='rgba(4,4,12,0.8)';ctx.fillRect(sx-sc*2,y-sc,w+sc*4,h+sc*2);}if(isRu){ctx.save();ctx.fillStyle=col||'#fff';ctx.font='bold '+Math.max(7,Math.round(6.5*sc))+'px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(s,sx,y,Math.max(1,w+2*sc));ctx.restore();}else{drawGlyphs(s,sx+sc,y+sc,sc,'#000');drawGlyphs(s,sx,y,sc,col||'#fff');}}
+function wrapText(s,maxW,sc){s=translateUiText(s);const w=String(s).toUpperCase().split(' ');const L=[];let c='';for(const x of w){const t=c?c+' '+x:x;if(textWidth(t,sc)<=maxW||!c)c=t;else{L.push(c);c=x;}}if(c)L.push(c);return L;}
+function applyLanguage(){const ru=uiLanguage()==='ru';document.documentElement.lang=ru?'ru':'en';document.title=ru?'Арена душ — мобильная версия':'Soul Arena — Mobile Edition';const hint=document.getElementById('rotateHint');if(hint)hint.innerHTML=ru?'Поверни телефон горизонтально<span>Soul Arena удобнее играть в альбомной ориентации</span>':'Rotate your phone to landscape<span>Soul Arena is best played in landscape orientation</span>';const fs=document.getElementById('fullscreenBtn');if(fs){fs.setAttribute('aria-label',ru?'Включить полноэкранный режим':'Enter fullscreen');fs.title=ru?'Полноэкранный режим':'Fullscreen';}}
+
 function fmtTime(t){const m=Math.floor(t/60),s=Math.floor(t%60);return m+':'+(s<10?'0':'')+s;}
 /*-- PROFILE --*/
-const DEF_SET={shake:true,particles:true,dmgNumbers:true,volume:80};
+const DEF_SET={shake:true,particles:true,dmgNumbers:true,autoAim:true,language:'en',volume:80};
 const Profile={ver:4,coins:0,crystals:0,unlocked:['warrior'],selected:'warrior',bestFloor:0,totalKills:0,runs:0,scores:[],skinsOwned:{},skinsEq:{},upg:{warrior:{},rogue:{},mage:{},assassin:{},necromancer:{}},lastDaily:'',bossKills:0,champKills:0,casinoSpins:0,dailyRuns:0,skelsSummoned:0,achClaimed:{},settings:Object.assign({},DEF_SET)};
 let _cloudT=0;
 function profileLoad(){try{const d=JSON.parse(localStorage.getItem('soul_arena_profile'));if(d){const s=d.settings||{};Object.assign(Profile,d);Profile.settings=Object.assign({},DEF_SET,s);
@@ -359,7 +391,7 @@ function aimLineClear(x,y){const dx=x-player.x,dy=y-player.y,d=Math.hypot(dx,dy)
 function closestAimEnemy(maxDist){let best=null,bd=maxDist||320;for(const e of Combat.enemies){if(e.hp<=0)continue;const d=Math.hypot(e.x-player.x,e.y-player.y);if(d<bd&&aimLineClear(e.x,e.y)){bd=d;best=e;}}return best;}
 function resolveMobileAim(slot){const a=MobileAim[slot];if(a&&a.dragged){const dx=a.x-a.sx,dy=a.y-a.sy,m=Math.hypot(dx,dy)||1,angle=Math.atan2(dy,dx);const reach=78+Math.min(1,m/46)*176;return{x:player.x+Math.cos(angle)*reach,y:player.y+Math.sin(angle)*reach,angle,dragged:true};}
  if(slot==='shift'&&curClass.id==='rogue'){const mv=Input.axis();if(mv.x||mv.y){const angle=Math.atan2(mv.y,mv.x);return{x:player.x+Math.cos(angle)*150,y:player.y+Math.sin(angle)*150,angle,dragged:false};}}
- const e=closestAimEnemy(320);if(e)return{x:e.x,y:e.y,angle:Math.atan2(e.y-player.y,e.x-player.x),target:e,dragged:false};
+ const e=Profile.settings.autoAim?closestAimEnemy(320):null;if(e)return{x:e.x,y:e.y,angle:Math.atan2(e.y-player.y,e.x-player.x),target:e,dragged:false};
  const angle=player.aimAngle||0;return{x:player.x+Math.cos(angle)*150,y:player.y+Math.sin(angle)*150,angle,dragged:false};}
 function applyMobileAim(slot){const sol=resolveMobileAim(slot);if(sol){player.aimAngle=sol.angle;const px=player.x+Math.cos(sol.angle)*150,py=player.y+Math.sin(sol.angle)*150;Input.mouse.x=worldToScreenX(px);Input.mouse.y=worldToScreenY(py);}return sol;}
 function updatePlayerAim(){
@@ -369,7 +401,7 @@ function updatePlayerAim(){
  if(active){applyMobileAim(active);return;}
  player.aimAngle=Math.atan2(screenToWorldY(Input.mouse.y)-player.y,screenToWorldX(Input.mouse.x)-player.x);
 }
-function mobileJoystickHit(x,y){const j=mobileJoystickHome();return x>=gameViewport.x&&x<Math.min(gameViewport.x+235,VIEW_W)&&y>j.y-145&&y<gameViewport.y+gameViewport.h+24&&Math.hypot(x-j.x,y-j.y)<112;}
+function mobileJoystickHit(x,y){const j=mobileJoystickHome();const near=Math.hypot(x-j.x,y-j.y)<118;const leftZone=x>=gameViewport.x+gameViewport.safeLeft&&x<Math.min(gameViewport.x+Math.min(248,gameViewport.w*.42),VIEW_W)&&y>gameViewport.y+gameViewport.h*.42;return near||leftZone;}
 function touchPoint(t,c){const r=c.getBoundingClientRect();return{x:(t.clientX-r.left)*(c.width/r.width),y:(t.clientY-r.top)*(c.height/r.height)};}
 function findMobileTarget(x,y){
  const wx=screenToWorldX(x),wy=screenToWorldY(y);let best=null,bd=1e9;
@@ -429,7 +461,7 @@ const beginMobileInput=(id,x,y)=>{
   Touch.targetTimer=setTimeout(()=>{if(Touch.targetId===id&&Touch.target)MobileInspect.target=Touch.target;},380);
   return true;
  }}
- if(mobileButton==='attack'&&Touch.attackId<0){Touch.attackId=id;MobileControls.attack=true;Input.mouse.left=true;startMobileAim('attack',id,x,y);return true;}
+ if(mobileButton==='attack'&&Touch.attackId<0){Touch.attackId=id;MobileControls.attack=true;Input.mouse.left=true;if(curClass.id!=='necromancer')startMobileAim('attack',id,x,y);return true;}
  if(mobileButton==='secondary'&&Touch.secondaryId<0){Touch.secondaryId=id;MobileControls.secondary=true;Input.mouse.right=true;startMobileAim('secondary',id,x,y);if(curClass.id==='mage'){Charge.holding=true;Charge.t=0;Charge.aimAngle=player.aimAngle;Charge.manual=false;}return true;}
  if(mobileButton==='shift'&&Touch.shiftId<0){Touch.shiftId=id;startMobileAim('shift',id,x,y);return true;}
  if(mobileButton==='ult'&&Touch.ultId<0){Touch.ultId=id;startMobileAim('ult',id,x,y);return true;}
@@ -445,35 +477,38 @@ const moveMobileInput=(id,x,y)=>{
 const endMobileInput=(id,cancelled)=>{
  if(id===Touch.jid){Touch.jid=-1;Touch.dx=0;Touch.dy=0;}
  if(id===Touch.aimId){Touch.aim=false;Touch.aimId=-1;}
- if(id===Touch.attackId){if(!cancelled)applyMobileAim('attack');clearMobileAim('attack');Touch.attackId=-1;MobileControls.attack=false;Input.mouse.left=false;}
+ if(id===Touch.attackId){if(!cancelled&&curClass.id!=='necromancer')applyMobileAim('attack');clearMobileAim('attack');Touch.attackId=-1;MobileControls.attack=false;Input.mouse.left=false;}
  if(id===Touch.secondaryId){let aim=null;if(!cancelled)aim=applyMobileAim('secondary');if(curClass.id==='mage'){Charge.aimAngle=aim?aim.angle:player.aimAngle;Charge.manual=!!(aim&&aim.dragged);if(cancelled){Charge.holding=false;Charge.t=0;}}else if(curClass.id!=='warrior'&&!cancelled){Input.mouse.clickedRight=true;}clearMobileAim('secondary');Touch.secondaryId=-1;MobileControls.secondary=false;Input.mouse.right=false;}
  if(id===Touch.shiftId){if(!cancelled){const aim=applyMobileAim('shift');triggerShift(aim?aim.angle:player.aimAngle,aim?{x:aim.x,y:aim.y}:null);}clearMobileAim('shift');Touch.shiftId=-1;}
  if(id===Touch.ultId){if(!cancelled){const aim=applyMobileAim('ult');triggerUlt(aim?aim.angle:player.aimAngle,aim?{x:aim.x,y:aim.y}:null);}clearMobileAim('ult');Touch.ultId=-1;}
  if(id===Touch.targetId){clearTimeout(Touch.targetTimer);if(!cancelled&&Touch.target&&Date.now()-Touch.targetStart<380)mobileUseTarget(Touch.target);Touch.targetId=-1;Touch.target=null;MobileInspect.target=null;}
  if(id===Touch.menuId)Touch.menuId=-1;
 };
-/* iOS Safari and Home Screen web apps use one native Touch Events path.
-   Capture at document level: standalone WebKit may retarget touch events away
-   from the canvas while the finger is moving. No pointer capture is required. */
+/* iOS Safari and Home Screen web apps use native Touch Events.
+   Keep the same path in both modes: mixing Pointer Events in the installed
+   app caused touch tracking to diverge from Safari. Document capture keeps
+   movement updates alive even when WebKit retargets the touch away from canvas. */
 const isIOSDevice=/iPad|iPhone|iPod/.test(navigator.userAgent)||
  (navigator.platform==='MacIntel'&&(navigator.maxTouchPoints||0)>1);
 const isIOSHomeScreen=!!(navigator.standalone ||
  (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
-const useNativeTouch=isIOSDevice||isIOSHomeScreen||!window.PointerEvent;
+const useNativeTouch=!window.PointerEvent||isIOSDevice||isIOSHomeScreen;
 c.style.touchAction='none';c.style.webkitUserSelect='none';c.style.userSelect='none';
+document.documentElement.style.touchAction='none';document.body.style.touchAction='none';
+try{document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});document.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false});}catch(e){}
 if(!useNativeTouch){
  c.addEventListener('pointerdown',e=>{
   if(e.pointerType==='mouse')return;
   const q=touchPoint(e,c);const handled=beginMobileInput(e.pointerId,q.x,q.y);
-  if(handled)e.preventDefault();
+  if(handled){try{c.setPointerCapture(e.pointerId);}catch(err){}e.preventDefault();}
  },{passive:false});
  document.addEventListener('pointermove',e=>{
   if(e.pointerType==='mouse')return;
   const q=touchPoint(e,c);moveMobileInput(e.pointerId,q.x,q.y);
   if(e.pointerId===Touch.jid||e.pointerId===Touch.aimId||e.pointerId===Touch.targetId||isMobileAimId(e.pointerId))e.preventDefault();
  },{passive:false,capture:true});
- document.addEventListener('pointerup',e=>{if(e.pointerType!=='mouse')endMobileInput(e.pointerId,false);},{passive:false,capture:true});
- document.addEventListener('pointercancel',e=>{if(e.pointerType!=='mouse')endMobileInput(e.pointerId,true);},{passive:false,capture:true});
+ document.addEventListener('pointerup',e=>{if(e.pointerType!=='mouse'){endMobileInput(e.pointerId,false);try{if(c.hasPointerCapture(e.pointerId))c.releasePointerCapture(e.pointerId);}catch(err){}}},{passive:false,capture:true});
+ document.addEventListener('pointercancel',e=>{if(e.pointerType!=='mouse'){endMobileInput(e.pointerId,true);try{if(c.hasPointerCapture(e.pointerId))c.releasePointerCapture(e.pointerId);}catch(err){}}},{passive:false,capture:true});
 }else{
  const isExcludedTouchTarget=target=>!!(target&&target.closest&&target.closest('#fullscreenBtn,#fullscreenToast,#rotateHint'));
  document.addEventListener('touchstart',e=>{
@@ -490,7 +525,7 @@ if(!useNativeTouch){
  },{passive:false,capture:true});
  document.addEventListener('touchmove',e=>{
   let active=false;
-  for(const t of e.changedTouches){const q=touchPoint(t,c);moveMobileInput(t.identifier,q.x,q.y);if(t.identifier===Touch.jid||t.identifier===Touch.aimId||t.identifier===Touch.targetId||isMobileAimId(t.identifier))active=true;}
+  for(const t of e.changedTouches){const q=touchPoint(t,c);moveMobileInput(t.identifier,q.x,q.y);if(t.identifier===Touch.jid||t.identifier===Touch.aimId||t.identifier===Touch.targetId||t.identifier===Touch.attackId||t.identifier===Touch.secondaryId||t.identifier===Touch.shiftId||t.identifier===Touch.ultId||isMobileAimId(t.identifier))active=true;}
   if(active)e.preventDefault();
  },{passive:false,capture:true});
  document.addEventListener('touchend',e=>{
@@ -508,7 +543,7 @@ if(Touch.jid>=0){const m=Math.hypot(Touch.dx,Touch.dy);if(m>4){const k=Math.min(
 const m=Math.hypot(x,y);if(m>1){x/=m;y/=m;}return{x,y};},
 endFrame(){this.mouse.clickedLeft=false;this.mouse.clickedRight=false;}};
 /*-- UI --*/
-const APP={screen:'menu'};let settingsReturn='menu',settingsConfirm=false,exitConfirm=false,adT=0,buyMsgT=0,buyMsg='',selIdx=0,shopTab=0,shopClassSel=0;
+const APP={screen:'menu'};applyLanguage();let settingsReturn='menu',settingsConfirm=false,exitConfirm=false,adT=0,buyMsgT=0,buyMsg='',selIdx=0,shopTab=0,shopClassSel=0;
 let achScroll=0,clsScroll=0,skinScroll=0;
 let uiButtons=[],uiHover=false;
 function mouseInRect(x,y,w,h){return Input.mouse.x>=x&&Input.mouse.x<=x+w&&Input.mouse.y>=y&&Input.mouse.y<=y+h;}
@@ -983,8 +1018,8 @@ function updateNecro(dt){if(curClass.id!=='necromancer')return;
 const wm=PlayerStats.weapon.dmgMult;
 if(CloudCd.cd>0)CloudCd.cd-=dt;if(SkullCd.cd>0)SkullCd.cd-=dt;
 if(Input.mouse.left&&!GameState.levelUpPending){
-if(!NBeam.active){let best=null,bd=1e9;for(const e of Combat.enemies){if(e.hp<=0)continue;const d=Math.hypot(e.x-player.x,e.y-player.y);if(d>170)continue;let da=Math.atan2(e.y-player.y,e.x-player.x)-player.aimAngle;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;if(Math.abs(da)<1.0&&d<bd){bd=d;best=e;}}
-if(best){NBeam.active=true;NBeam.target=best;NBeam.attach=0;NBeam.tick=0;sfx('soul');}}
+if(!NBeam.active){let best=null,bd=170;for(const e of Combat.enemies){if(e.hp<=0||!aimLineClear(e.x,e.y))continue;const d=Math.hypot(e.x-player.x,e.y-player.y);if(d<bd){bd=d;best=e;}}
+if(best){player.aimAngle=Math.atan2(best.y-player.y,best.x-player.x);NBeam.active=true;NBeam.target=best;NBeam.attach=0;NBeam.tick=0;sfx('soul');}}
 else{const t=NBeam.target;
 if(!t||t.hp<=0||Math.hypot(t.x-player.x,t.y-player.y)>220){NBeam.active=false;NBeam.target=null;}
 else{NBeam.attach+=dt;NBeam.tick-=dt;
@@ -1752,6 +1787,13 @@ function drawMobileAbilityButton(x,y,r,slot,col,pressed){
  ctx.restore();
 }
 function mobileAimColor(slot){return slot==='ult'?'#ff9a55':slot==='shift'?'#d5a5ff':slot==='secondary'?'#b6a0ff':'#ffe0a0';}
+function mobileAimUsesTrajectory(slot){
+ if(slot==='attack')return false;
+ if(slot==='secondary')return curClass.id==='mage'||(curClass.id==='assassin'&&!Stance.melee);
+ if(slot==='shift')return curClass.id==='warrior';
+ if(slot==='ult')return curClass.id==='rogue'||(curClass.id==='mage'&&staffEl()==='poison');
+ return false;
+}
 function mobileAimPreviewRadius(slot){
  if(slot==='shift'&&curClass.id==='mage')return 68;
  if(slot==='shift'&&curClass.id==='warrior')return 43+(ClassBonus.slamR||0);
@@ -1762,22 +1804,14 @@ function mobileAimPreviewRadius(slot){
 }
 function drawMobileAimGuideWorld(){
  const slot=activeMobileAimSlot&&MobileAim[activeMobileAimSlot].id>=0?activeMobileAimSlot:['attack','secondary','shift','ult'].find(k=>MobileAim[k].id>=0);
- if(!slot)return;
+ if(!slot||!mobileAimUsesTrajectory(slot))return;
  const sol=resolveMobileAim(slot);if(!sol)return;
- const col=mobileAimColor(slot),dx=sol.x-player.x,dy=sol.y-player.y,d=Math.hypot(dx,dy)||1;
- const ex=sol.x,ey=sol.y;
+ const col=mobileAimColor(slot),dx=sol.x-player.x,dy=sol.y-player.y,d=Math.hypot(dx,dy)||1,ex=sol.x,ey=sol.y;
+ // Only thrown objects / travelling projectiles get a floor trajectory preview.
  ctx.save();ctx.globalAlpha=.72;ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(player.x,player.y+2);ctx.lineTo(ex,ey);ctx.stroke();ctx.setLineDash([]);
- // Small floor pips make the full flight/aim path readable without obscuring the tiles.
  ctx.fillStyle=col;for(let t=18;t<d-8;t+=22){ctx.globalAlpha=.42;ctx.fillRect(Math.round(player.x+dx*t/d)-1,Math.round(player.y+dy*t/d)-1,2,2);}
  ctx.globalAlpha=.9;ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(ex,ey,7,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(ex-11,ey);ctx.lineTo(ex+11,ey);ctx.moveTo(ex,ey-11);ctx.lineTo(ex,ey+11);ctx.stroke();
  const radius=mobileAimPreviewRadius(slot);if(radius>0){ctx.globalAlpha=.18;ctx.fillStyle=col;ctx.beginPath();ctx.arc(ex,ey,radius,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.72;ctx.strokeStyle=col;ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(ex,ey,radius,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
- if(slot==='secondary'&&curClass.id==='warrior'){
-  ctx.globalAlpha=.12;ctx.fillStyle='#cdd6e6';ctx.beginPath();ctx.moveTo(player.x,player.y);ctx.arc(player.x,player.y,30,sol.angle-.82,sol.angle+.82);ctx.closePath();ctx.fill();
-  ctx.globalAlpha=.72;ctx.strokeStyle='#cdd6e6';ctx.beginPath();ctx.arc(player.x,player.y,30,sol.angle-.82,sol.angle+.82);ctx.stroke();
- }
- if(slot==='attack'&&curClass.id==='warrior'){
-  ctx.globalAlpha=.16;ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(player.x,player.y);ctx.arc(player.x,player.y,curClass.meleeRange,-curClass.meleeArc/2+sol.angle,curClass.meleeArc/2+sol.angle);ctx.closePath();ctx.fill();
- }
  ctx.restore();
 }
 function drawMobileAimStick(){
@@ -1945,17 +1979,18 @@ if(maxS>0){const h=VIEW_H-96,th=Math.max(20,h*h/(ACHS.length*34+16));const ty=44
 drawLabel('MOUSE WHEEL TO SCROLL',VIEW_W/2,VIEW_H-44,1,'#444455','center');
 drawBtn(Math.round(VIEW_W/2-60),VIEW_H-36,120,24,'BACK',()=>{APP.screen='menu';sfx('ui');},{scale:2});
 if(buyMsgT>0)drawLabel(buyMsg,VIEW_W/2,VIEW_H-58,1,'#66ff88','center');}
-function drawSettingsScreen(){ctx.fillStyle='#211911';ctx.fillRect(0,0,VIEW_W,VIEW_H);drawEmbers();drawLabel('SETTINGS',VIEW_W/2,24,3,'#ffdd44','center');
-const rows=[{k:'shake',label:'SCREEN SHAKE'},{k:'particles',label:'PARTICLES'},{k:'dmgNumbers',label:'DAMAGE NUMBERS'}];let y=80;
-for(const r of rows){drawLabel(r.label,150,y+3,2,'#fff','left',false);const on=!!Profile.settings[r.k];drawBtn(430,y,90,20,on?'ON':'OFF',(()=>{const kk=r.k;return()=>{Profile.settings[kk]=!Profile.settings[kk];profileSave();sfx('ui');};})(),{color:on?'#66ff88':'#ff6666'});y+=34;}
+function drawSettingsScreen(){ctx.fillStyle='#211911';ctx.fillRect(0,0,VIEW_W,VIEW_H);drawEmbers();drawLabel('SETTINGS',VIEW_W/2,20,3,'#ffdd44','center');
+const rows=[{k:'shake',label:'SCREEN SHAKE'},{k:'particles',label:'PARTICLES'},{k:'dmgNumbers',label:'DAMAGE NUMBERS'},{k:'autoAim',label:'AUTO AIM'}];let y=66;
+for(const r of rows){drawLabel(r.label,150,y+3,2,'#fff','left',false);const on=!!Profile.settings[r.k];drawBtn(430,y,90,20,on?'ON':'OFF',(()=>{const kk=r.k;return()=>{Profile.settings[kk]=!Profile.settings[kk];profileSave();sfx('ui');};})(),{color:on?'#66ff88':'#ff6666'});y+=30;}
+drawLabel('LANGUAGE',150,y+3,2,'#fff','left',false);drawBtn(410,y,110,20,uiLanguage()==='ru'?'RUSSIAN':'ENGLISH',()=>{Profile.settings.language=uiLanguage()==='ru'?'en':'ru';profileSave();applyLanguage();sfx('ui');},{color:'#ffdd44'});y+=34;
 drawLabel('MASTER VOLUME',150,y+3,2,'#fff','left',false);
 drawBtn(400,y,26,20,'-',()=>{Profile.settings.volume=Math.max(0,Profile.settings.volume-10);profileSave();AudioSys.setVolume(Profile.settings.volume);sfx('ui');});
 drawBar(432,y+6,80,8,Profile.settings.volume,100,'#d9b568','#152a35');drawLabel(Profile.settings.volume+'%',545,y+3,1,'#c2b18e','left',false);
-drawBtn(524,y,26,20,'+',()=>{Profile.settings.volume=Math.min(100,Profile.settings.volume+10);profileSave();AudioSys.setVolume(Profile.settings.volume);sfx('ui');});y+=44;
+drawBtn(524,y,26,20,'+',()=>{Profile.settings.volume=Math.min(100,Profile.settings.volume+10);profileSave();AudioSys.setVolume(Profile.settings.volume);sfx('ui');});y+=36;
 if(!settingsConfirm)drawBtn(150,y,200,22,'RESET PROGRESS',()=>{settingsConfirm=true;sfx('error');},{color:'#ff6666'});
-else{drawLabel('ERASE ALL PROGRESS?',150,y+4,1,'#ff6666','left',false);drawBtn(360,y,60,22,'YES',()=>{profileReset();settingsConfirm=false;buyMsg='PROGRESS ERASED';buyMsgT=2;},{color:'#ff3344'});drawBtn(430,y,60,22,'NO',()=>{settingsConfirm=false;sfx('ui');});}
+else{drawLabel('ERASE ALL PROGRESS?',150,y+4,1,'#ff6666','left',false);drawBtn(360,y,60,22,'YES',()=>{profileReset();settingsConfirm=false;applyLanguage();buyMsg='PROGRESS ERASED';buyMsgT=2;},{color:'#ff3344'});drawBtn(430,y,60,22,'NO',()=>{settingsConfirm=false;sfx('ui');});}
 drawBtn(Math.round(VIEW_W/2-60),VIEW_H-46,120,26,'BACK',()=>{APP.screen=settingsReturn;settingsConfirm=false;sfx('ui');},{scale:2});
-drawLabel('BUILD 27 - PLATFORM: '+Platform.name.toUpperCase()+(Platform.ready?' (SDK OK)':' (WEB)'),VIEW_W/2,VIEW_H-14,1,'#444455','center');}
+drawLabel('BUILD 28 - PLATFORM: '+Platform.name.toUpperCase()+(Platform.ready?' (SDK OK)':' (WEB)'),VIEW_W/2,VIEW_H-14,1,'#444455','center');}
 function drawPauseScreen(a){drawGameWorld(a);ctx.fillStyle='rgba(0,0,0,0.78)';ctx.fillRect(0,0,VIEW_W,VIEW_H);drawLabel('PAUSED',VIEW_W/2,60,4,'#fff','center');
 drawLabel('FLOOR '+run.floor+'  '+curClass.name+'  TIME '+fmtTime(run.time)+(run.mode==='daily'?'  DAILY':''),VIEW_W/2,94,1,'#c2b18e','center');
 drawLabel('KILLS '+run.kills+'  COINS '+run.coins+'  CRYSTALS '+run.crystals,VIEW_W/2,106,1,'#e8b437','center');
@@ -2101,7 +2136,7 @@ const fullscreenBtn=document.getElementById('fullscreenBtn');
 const fullscreenToast=document.getElementById('fullscreenToast');
 let fullscreenToastTimer=0;
 function isPageFullscreen(){return !!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement||document.msFullscreenElement);}
-function showFullscreenToast(message){fullscreenToast.textContent=message;fullscreenToast.style.display='block';clearTimeout(fullscreenToastTimer);fullscreenToastTimer=setTimeout(()=>{fullscreenToast.style.display='none';},6500);}
+function showFullscreenToast(message){if(uiLanguage()==='en'){const en={'Не удалось выйти из полноэкранного режима. Используй жест или кнопку браузера.':'Could not exit fullscreen. Use a gesture or the browser button.','Браузер запретил полный экран. Попробуй открыть игру через меню браузера.':'Fullscreen is unavailable here. Try the browser menu.','Игра уже открыта как приложение без адресной строки.':'The game is already running as a Home Screen app.','Этот браузер не разрешает скрывать адресную строку для обычной HTML-страницы. На iPhone открой веб-версию в Safari → «Поделиться» → «На экран Домой».':'This browser cannot hide the address bar. On iPhone, open the game in Safari, tap Share, then Add to Home Screen.'};message=en[message]||message;}fullscreenToast.textContent=message;fullscreenToast.style.display='block';clearTimeout(fullscreenToastTimer);fullscreenToastTimer=setTimeout(()=>{fullscreenToast.style.display='none';},6500);}
 function updateFullscreenButton(){const active=isPageFullscreen();fullscreenBtn.textContent=active?'⤢':'⛶';fullscreenBtn.setAttribute('aria-label',active?'Выйти из полноэкранного режима':'Включить полноэкранный режим');fullscreenBtn.title=active?'Выйти из полноэкранного режима':'Полноэкранный режим';resize();}
 async function toggleFullscreen(){
  if(isPageFullscreen()){
@@ -2142,7 +2177,7 @@ window.addEventListener('pageshow',()=>{setTimeout(resize,80);setTimeout(resize,
 resize();setTimeout(resize,240);
 window.addEventListener('beforeunload',()=>{if(APP.screen==='game'&&!GameState.playerDead)saveRun();});
 window.addEventListener('pagehide',()=>{if(APP.screen==='game'&&!GameState.playerDead)saveRun();});
-window.addEventListener('blur',()=>{if(APP.screen==='game'&&!GameState.playerDead)APP.screen='pause';});
+window.addEventListener('blur',()=>{if(document.hidden&&APP.screen==='game'&&!GameState.playerDead)APP.screen='pause';});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(APP.screen==='game'&&!GameState.playerDead)APP.screen='pause';if(AudioSys.ctx&&AudioSys.ctx.state==='running')AudioSys.ctx.suspend();}
 else{resize();if(AudioSys.ctx&&AudioSys.ctx.state==='suspended')AudioSys.ctx.resume();}});
 const vignetteCanvas=document.createElement('canvas');vignetteCanvas.width=VIEW_W;vignetteCanvas.height=GH;
@@ -2234,7 +2269,8 @@ else if(APP.screen==='exit')drawExitScreen();
 canvas.style.cursor=uiHover?'pointer':(APP.screen==='game'&&!Touch.on?'none':'default');
 acc+=dt;let guard=0;while(acc>=STEP&&guard<5){if(APP.screen==='game')gameUpdate(STEP);acc-=STEP;guard++;}
 Input.endFrame();}
-try{console.info('Soul Arena build 27 | platform:',Platform.name);}catch(e){}
+try{console.info('Soul Arena build 28 | platform:',Platform.name);}catch(e){}
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).then(reg=>{try{reg.update();}catch(e){};}).catch(err=>console.warn('PWA offline cache unavailable:',err));},{once:true});}
 requestAnimationFrame(frame);
 </script>
 </body>
