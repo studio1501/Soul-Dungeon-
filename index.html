@@ -364,47 +364,71 @@ c.addEventListener('mousemove',e=>{const r=c.getBoundingClientRect();this.mouse.
 c.addEventListener('mousedown',e=>{if(e.button===0){this.mouse.left=true;this.mouse.clickedLeft=true;}if(e.button===2){this.mouse.right=true;this.mouse.clickedRight=true;}});
 window.addEventListener('mouseup',e=>{if(e.button===0)this.mouse.left=false;if(e.button===2)this.mouse.right=false;});
 c.addEventListener('contextmenu',e=>e.preventDefault());
-c.addEventListener('touchstart',e=>{Touch.on=true;for(const t of e.changedTouches){const {x,y}=touchPoint(t,c);
- if(APP.screen==='game'&&CasinoPick.active){const cw=142,gap=10,left=(VIEW_W-(cw*3+gap*2))/2,top=145;for(let i=0;i<3;i++){const bx=left+i*(cw+gap);if(x>=bx&&x<=bx+cw&&y>=top&&y<=top+112){chooseCasinoArtifact(i);break;}}continue;}
- if(APP.screen==='game'&&GameState.levelUpPending){const n=GameState.levelUpChoices.length;for(let i=0;i<n;i++){const bx=cardLeft(i,n);if(x>=bx&&x<=bx+CARD_W&&y>=CARD_Y&&y<=CARD_Y+CARD_H){selectUpgrade(i);break;}}continue;}
- if(APP.screen!=='game'){for(const b of uiButtons){if(!b.disabled&&x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h){b.cb();break;}}continue;}
- if(APP.screen==='game'&&x>=296&&x<=344&&y>=405){Touch.menuId=t.identifier;saveRun();APP.screen='menu';Platform.gameplayStop();continue;}
- if(APP.screen==='game'&&mobileJoystickHit(x,y)&&Touch.jid<0){Touch.jid=t.identifier;Touch.bx=x;Touch.by=y;Touch.dx=0;Touch.dy=0;continue;}
- if(APP.screen==='game'&&!mobileControlHit(x,y)&&!mobileJoystickHit(x,y)&&!GameState.levelUpPending&&!CasinoPick.active){const target=findMobileTarget(x,y);if(target){Touch.targetId=t.identifier;Touch.target=target;Touch.targetStart=Date.now();Touch.targetX=x;Touch.targetY=y;MobileInspect.target=null;Touch.targetTimer=setTimeout(()=>{if(Touch.targetId===t.identifier&&Touch.target)MobileInspect.target=Touch.target;},380);continue;}}
+const beginMobileInput=(id,x,y)=>{
+ if(APP.screen!=='game')return false;
+ Touch.on=true;
+ if(CasinoPick.active){const cw=142,gap=10,left=(VIEW_W-(cw*3+gap*2))/2,top=145;for(let i=0;i<3;i++){const bx=left+i*(cw+gap);if(x>=bx&&x<=bx+cw&&y>=top&&y<=top+112){chooseCasinoArtifact(i);break;}}return true;}
+ if(GameState.levelUpPending){const n=GameState.levelUpChoices.length;for(let i=0;i<n;i++){const bx=cardLeft(i,n);if(x>=bx&&x<=bx+CARD_W&&y>=CARD_Y&&y<=CARD_Y+CARD_H){selectUpgrade(i);break;}}return true;}
+ if(x>=296&&x<=344&&y>=405){Touch.menuId=id;saveRun();APP.screen='menu';Platform.gameplayStop();return true;}
+ if(Touch.jid<0&&mobileJoystickHit(x,y)){
+  Touch.jid=id;Touch.bx=MOBILE_JOY_HOME.x;Touch.by=MOBILE_JOY_HOME.y;
+  Touch.dx=Math.max(-40,Math.min(40,x-MOBILE_JOY_HOME.x));
+  Touch.dy=Math.max(-40,Math.min(40,y-MOBILE_JOY_HOME.y));
+  return true;
+ }
  const mobileButton=mobileControlHit(x,y);
- if(APP.screen==='game'&&mobileButton==='attack'&&Touch.attackId<0){Touch.attackId=t.identifier;MobileControls.attack=true;this.mouse.left=true;continue;}
- if(APP.screen==='game'&&mobileButton==='secondary'&&Touch.secondaryId<0){Touch.secondaryId=t.identifier;MobileControls.secondary=true;this.mouse.right=true;this.mouse.clickedRight=true;continue;}
- if(APP.screen==='game'&&mobileButton==='shift'&&Touch.shiftId<0){Touch.shiftId=t.identifier;triggerShift();continue;}
- if(APP.screen==='game'&&mobileButton==='ult'&&Touch.ultId<0){Touch.ultId=t.identifier;triggerUlt();continue;}
- if(APP.screen==='game'&&y>GOY&&y<GOY+GH){Touch.aim=true;Touch.aimId=t.identifier;Touch.ax=x;Touch.ay=y;this.mouse.x=x;this.mouse.y=y;}
- }e.preventDefault();},{passive:false});
-c.addEventListener('touchmove',e=>{for(const t of e.changedTouches){const {x,y}=touchPoint(t,c);
- if(t.identifier===Touch.jid){Touch.dx=Math.max(-40,Math.min(40,x-Touch.bx));Touch.dy=Math.max(-40,Math.min(40,y-Touch.by));}
- else if(t.identifier===Touch.aimId){Touch.ax=x;Touch.ay=y;this.mouse.x=x;this.mouse.y=y;}
- else if(t.identifier===Touch.targetId&&Touch.target&&Math.hypot(x-Touch.targetX,y-Touch.targetY)>24){clearTimeout(Touch.targetTimer);Touch.target=null;Touch.targetId=-1;MobileInspect.target=null;}
- }e.preventDefault();},{passive:false});
-c.addEventListener('touchend',e=>{for(const t of e.changedTouches){
- if(t.identifier===Touch.jid){Touch.jid=-1;Touch.dx=0;Touch.dy=0;}
- if(t.identifier===Touch.aimId){Touch.aim=false;Touch.aimId=-1;}
- if(t.identifier===Touch.attackId){Touch.attackId=-1;MobileControls.attack=false;this.mouse.left=false;}
- if(t.identifier===Touch.secondaryId){Touch.secondaryId=-1;MobileControls.secondary=false;this.mouse.right=false;}
- if(t.identifier===Touch.shiftId)Touch.shiftId=-1;
- if(t.identifier===Touch.ultId)Touch.ultId=-1;
- if(t.identifier===Touch.targetId){clearTimeout(Touch.targetTimer);if(Touch.target&&Date.now()-Touch.targetStart<380)mobileUseTarget(Touch.target);Touch.targetId=-1;Touch.target=null;MobileInspect.target=null;}
- if(t.identifier===Touch.menuId)Touch.menuId=-1;
- }e.preventDefault();},{passive:false});
-c.addEventListener('touchcancel',e=>{for(const t of e.changedTouches){
- if(t.identifier===Touch.jid){Touch.jid=-1;Touch.dx=0;Touch.dy=0;}
- if(t.identifier===Touch.aimId){Touch.aim=false;Touch.aimId=-1;}
- if(t.identifier===Touch.attackId){Touch.attackId=-1;MobileControls.attack=false;this.mouse.left=false;}
- if(t.identifier===Touch.secondaryId){Touch.secondaryId=-1;MobileControls.secondary=false;this.mouse.right=false;}
- if(t.identifier===Touch.shiftId)Touch.shiftId=-1;
- if(t.identifier===Touch.ultId)Touch.ultId=-1;
- if(t.identifier===Touch.targetId){clearTimeout(Touch.targetTimer);Touch.targetId=-1;Touch.target=null;MobileInspect.target=null;}
- }e.preventDefault();},{passive:false});
+ if(!mobileButton){const target=findMobileTarget(x,y);if(target){
+  Touch.targetId=id;Touch.target=target;Touch.targetStart=Date.now();Touch.targetX=x;Touch.targetY=y;MobileInspect.target=null;
+  clearTimeout(Touch.targetTimer);
+  Touch.targetTimer=setTimeout(()=>{if(Touch.targetId===id&&Touch.target)MobileInspect.target=Touch.target;},380);
+  return true;
+ }}
+ if(mobileButton==='attack'&&Touch.attackId<0){Touch.attackId=id;MobileControls.attack=true;Input.mouse.left=true;return true;}
+ if(mobileButton==='secondary'&&Touch.secondaryId<0){Touch.secondaryId=id;MobileControls.secondary=true;Input.mouse.right=true;Input.mouse.clickedRight=true;return true;}
+ if(mobileButton==='shift'&&Touch.shiftId<0){Touch.shiftId=id;triggerShift();return true;}
+ if(mobileButton==='ult'&&Touch.ultId<0){Touch.ultId=id;triggerUlt();return true;}
+ if(y>GOY&&y<GOY+GH){Touch.aim=true;Touch.aimId=id;Touch.ax=x;Touch.ay=y;Input.mouse.x=x;Input.mouse.y=y;}
+ return true;
+};
+const moveMobileInput=(id,x,y)=>{
+ if(id===Touch.jid){Touch.dx=Math.max(-40,Math.min(40,x-MOBILE_JOY_HOME.x));Touch.dy=Math.max(-40,Math.min(40,y-MOBILE_JOY_HOME.y));}
+ else if(id===Touch.aimId){Touch.ax=x;Touch.ay=y;Input.mouse.x=x;Input.mouse.y=y;}
+ else if(id===Touch.targetId&&Touch.target&&Math.hypot(x-Touch.targetX,y-Touch.targetY)>24){clearTimeout(Touch.targetTimer);Touch.target=null;Touch.targetId=-1;MobileInspect.target=null;}
+};
+const endMobileInput=(id,cancelled)=>{
+ if(id===Touch.jid){Touch.jid=-1;Touch.dx=0;Touch.dy=0;}
+ if(id===Touch.aimId){Touch.aim=false;Touch.aimId=-1;}
+ if(id===Touch.attackId){Touch.attackId=-1;MobileControls.attack=false;Input.mouse.left=false;}
+ if(id===Touch.secondaryId){Touch.secondaryId=-1;MobileControls.secondary=false;Input.mouse.right=false;}
+ if(id===Touch.shiftId)Touch.shiftId=-1;
+ if(id===Touch.ultId)Touch.ultId=-1;
+ if(id===Touch.targetId){clearTimeout(Touch.targetTimer);if(!cancelled&&Touch.target&&Date.now()-Touch.targetStart<380)mobileUseTarget(Touch.target);Touch.targetId=-1;Touch.target=null;MobileInspect.target=null;}
+ if(id===Touch.menuId)Touch.menuId=-1;
+};
+if(window.PointerEvent){
+ c.style.touchAction='none';
+ c.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse')return;
+  const q=touchPoint(e,c);const handled=beginMobileInput(e.pointerId,q.x,q.y);
+  if(handled){try{c.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();}
+ },{passive:false});
+ window.addEventListener('pointermove',e=>{
+  if(e.pointerType==='mouse')return;
+  const q=touchPoint(e,c);moveMobileInput(e.pointerId,q.x,q.y);
+  if(e.pointerId===Touch.jid||e.pointerId===Touch.aimId||e.pointerId===Touch.targetId)e.preventDefault();
+ },{passive:false});
+ window.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')return;endMobileInput(e.pointerId,false);e.preventDefault();},{passive:false});
+ window.addEventListener('pointercancel',e=>{if(e.pointerType==='mouse')return;endMobileInput(e.pointerId,true);e.preventDefault();},{passive:false});
+ c.addEventListener('lostpointercapture',e=>{if(e.pointerType!=='mouse')endMobileInput(e.pointerId,true);});
+}else{
+ c.addEventListener('touchstart',e=>{Touch.on=true;for(const t of e.changedTouches){const q=touchPoint(t,c);beginMobileInput(t.identifier,q.x,q.y);}e.preventDefault();},{passive:false});
+ c.addEventListener('touchmove',e=>{for(const t of e.changedTouches){const q=touchPoint(t,c);moveMobileInput(t.identifier,q.x,q.y);}e.preventDefault();},{passive:false});
+ c.addEventListener('touchend',e=>{for(const t of e.changedTouches)endMobileInput(t.identifier,false);e.preventDefault();},{passive:false});
+ c.addEventListener('touchcancel',e=>{for(const t of e.changedTouches)endMobileInput(t.identifier,true);e.preventDefault();},{passive:false});
+}
 },
 axis(){let x=0,y=0;if(this.keys['KeyW']||this.keys['ArrowUp'])y-=1;if(this.keys['KeyS']||this.keys['ArrowDown'])y+=1;if(this.keys['KeyA']||this.keys['ArrowLeft'])x-=1;if(this.keys['KeyD']||this.keys['ArrowRight'])x+=1;
-if(Touch.jid>=0){const m=Math.hypot(Touch.dx,Touch.dy);if(m>2){const k=Math.min(1,m/38);x+=(Touch.dx/m)*k;y+=(Touch.dy/m)*k;}}
+if(Touch.jid>=0){const m=Math.hypot(Touch.dx,Touch.dy);if(m>4){const k=Math.min(1,(m-4)/32);x+=(Touch.dx/m)*k;y+=(Touch.dy/m)*k;}}
 const m=Math.hypot(x,y);if(m>1){x/=m;y/=m;}return{x,y};},
 endFrame(){this.mouse.clickedLeft=false;this.mouse.clickedRight=false;}};
 /*-- UI --*/
@@ -1572,15 +1596,15 @@ drawLabel('SOUL ARENA',VIEW_W/2+3,52,5,'#4a1212','center',false);drawLabel('SOUL
 drawLabel('ROGUELIKE ARENA COMBAT',VIEW_W/2,85,1,'#8899aa','center',false);
 const dm=dailyMods();
 drawLabel('DAILY: '+dm.map(m=>(MODS.find(mm=>mm.id===m)||{}).name||m).join(' + '),VIEW_W/2,97,1,'#ff9a3c','center');
-const bw=170,bh=20,bx=Math.round(VIEW_W/2-bw/2);let by=112;
-if(runSaveExists()){drawBtn(bx,by,bw,bh,'> CONTINUE RUN',()=>{if(!loadRun())startRun(Profile.selected,undefined,false);},{color:'#66ff88'});by+=bh+5;}
-drawBtn(bx,by,bw,bh,'NEW RUN (ENDLESS)',()=>{run.mode='endless';run.mods=[];clsScroll=0;selIdx=Math.max(0,CLASS_DEFS.findIndex(c=>c.id===Profile.selected));APP.screen='classes';sfx('ui');},{color:'#ffdd44'});by+=bh+5;
-drawBtn(bx,by,bw,bh,'DAILY CHALLENGE',()=>{run.mode='daily';run.mods=dailyMods();clsScroll=0;selIdx=Math.max(0,CLASS_DEFS.findIndex(c=>c.id===Profile.selected));APP.screen='classes';sfx('ui');},{color:'#ff9a3c'});by+=bh+5;
-drawBtn(bx,by,bw,bh,'SHOP',()=>{shopTab=0;skinScroll=0;shopClassSel=Math.max(0,CLASS_DEFS.findIndex(c=>c.id===Profile.selected));APP.screen='shop';sfx('ui');},{color:'#ff66cc'});by+=bh+5;
-drawBtn(bx,by,bw,bh,'ACHIEVEMENTS',()=>{achScroll=0;APP.screen='ach';sfx('ui');},{color:'#88ff88'});by+=bh+5;
-drawBtn(bx,by,bw,bh,'SETTINGS',()=>{settingsReturn='menu';settingsConfirm=false;APP.screen='settings';sfx('ui');});by+=bh+5;
-if(!exitConfirm)drawBtn(bx,by,bw,bh,'EXIT GAME',()=>{exitConfirm=true;sfx('error');},{color:'#ff6666'});
-else{drawBtn(bx,by,80,bh,'YES EXIT',()=>{saveRun();APP.screen='exit';try{window.close();}catch(e){}},{color:'#ff3344'});drawBtn(bx+90,by,80,bh,'NO',()=>{exitConfirm=false;sfx('ui');});}
+const bw=220,bh=28,bx=Math.round(VIEW_W/2-bw/2);let by=105;
+if(runSaveExists()){drawBtn(bx,by,bw,bh,'> CONTINUE RUN',()=>{if(!loadRun())startRun(Profile.selected,undefined,false);},{color:'#66ff88',scale:2});by+=bh+5;}
+drawBtn(bx,by,bw,bh,'NEW RUN (ENDLESS)',()=>{run.mode='endless';run.mods=[];clsScroll=0;selIdx=Math.max(0,CLASS_DEFS.findIndex(c=>c.id===Profile.selected));APP.screen='classes';sfx('ui');},{color:'#ffdd44',scale:2});by+=bh+5;
+drawBtn(bx,by,bw,bh,'DAILY CHALLENGE',()=>{run.mode='daily';run.mods=dailyMods();clsScroll=0;selIdx=Math.max(0,CLASS_DEFS.findIndex(c=>c.id===Profile.selected));APP.screen='classes';sfx('ui');},{color:'#ff9a3c',scale:2});by+=bh+5;
+drawBtn(bx,by,bw,bh,'SHOP',()=>{shopTab=0;skinScroll=0;shopClassSel=Math.max(0,CLASS_DEFS.findIndex(c=>c.id===Profile.selected));APP.screen='shop';sfx('ui');},{color:'#ff66cc',scale:2});by+=bh+5;
+drawBtn(bx,by,bw,bh,'ACHIEVEMENTS',()=>{achScroll=0;APP.screen='ach';sfx('ui');},{color:'#88ff88',scale:2});by+=bh+5;
+drawBtn(bx,by,bw,bh,'SETTINGS',()=>{settingsReturn='menu';settingsConfirm=false;APP.screen='settings';sfx('ui');},{scale:2});by+=bh+5;
+if(!exitConfirm)drawBtn(bx,by,bw,bh,'EXIT GAME',()=>{exitConfirm=true;sfx('error');},{color:'#ff6666',scale:2});
+else{drawBtn(bx,by,105,bh,'YES EXIT',()=>{saveRun();APP.screen='exit';try{window.close();}catch(e){}},{color:'#ff3344',scale:2});drawBtn(bx+115,by,105,bh,'NO',()=>{exitConfirm=false;sfx('ui');},{scale:2});}
 ctx.fillStyle='rgba(6,8,16,0.85)';ctx.fillRect(8,VIEW_H-62,200,54);ctx.strokeStyle='#2a3050';ctx.strokeRect(8.5,VIEW_H-61.5,199,53);
 drawLabel('PROFILE',14,VIEW_H-56,1,'#54f7e0','left',false);
 drawLabel('COINS '+Profile.coins,14,VIEW_H-46,1,'#e8b437','left',false);drawLabel('CRYST '+Profile.crystals,100,VIEW_H-46,1,'#ff66cc','left',false);
