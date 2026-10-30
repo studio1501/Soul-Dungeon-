@@ -405,26 +405,57 @@ const endMobileInput=(id,cancelled)=>{
  if(id===Touch.targetId){clearTimeout(Touch.targetTimer);if(!cancelled&&Touch.target&&Date.now()-Touch.targetStart<380)mobileUseTarget(Touch.target);Touch.targetId=-1;Touch.target=null;MobileInspect.target=null;}
  if(id===Touch.menuId)Touch.menuId=-1;
 };
-if(window.PointerEvent){
- c.style.touchAction='none';
+/* iOS Home Screen apps have a long-standing difference in Pointer Events / pointer capture.
+   Use native Touch Events there; Safari tabs and other browsers keep Pointer Events. */
+const isIOSHomeScreen=!!(navigator.standalone ||
+ (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
+const useNativeTouch=isIOSHomeScreen || !window.PointerEvent;
+c.style.touchAction='none';
+c.style.webkitUserSelect='none';
+c.style.userSelect='none';
+if(!useNativeTouch){
  c.addEventListener('pointerdown',e=>{
   if(e.pointerType==='mouse')return;
   const q=touchPoint(e,c);const handled=beginMobileInput(e.pointerId,q.x,q.y);
-  if(handled){try{c.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();}
+  if(handled){e.preventDefault();}
  },{passive:false});
  window.addEventListener('pointermove',e=>{
   if(e.pointerType==='mouse')return;
   const q=touchPoint(e,c);moveMobileInput(e.pointerId,q.x,q.y);
   if(e.pointerId===Touch.jid||e.pointerId===Touch.aimId||e.pointerId===Touch.targetId)e.preventDefault();
  },{passive:false});
- window.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')return;endMobileInput(e.pointerId,false);e.preventDefault();},{passive:false});
- window.addEventListener('pointercancel',e=>{if(e.pointerType==='mouse')return;endMobileInput(e.pointerId,true);e.preventDefault();},{passive:false});
- c.addEventListener('lostpointercapture',e=>{if(e.pointerType!=='mouse')endMobileInput(e.pointerId,true);});
+ window.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')return;endMobileInput(e.pointerId,false);},{passive:false});
+ window.addEventListener('pointercancel',e=>{if(e.pointerType==='mouse')return;endMobileInput(e.pointerId,true);},{passive:false});
 }else{
- c.addEventListener('touchstart',e=>{Touch.on=true;for(const t of e.changedTouches){const q=touchPoint(t,c);beginMobileInput(t.identifier,q.x,q.y);}e.preventDefault();},{passive:false});
- c.addEventListener('touchmove',e=>{for(const t of e.changedTouches){const q=touchPoint(t,c);moveMobileInput(t.identifier,q.x,q.y);}e.preventDefault();},{passive:false});
- c.addEventListener('touchend',e=>{for(const t of e.changedTouches)endMobileInput(t.identifier,false);e.preventDefault();},{passive:false});
- c.addEventListener('touchcancel',e=>{for(const t of e.changedTouches)endMobileInput(t.identifier,true);e.preventDefault();},{passive:false});
+ /* Do not use setPointerCapture in an installed iOS web app. Track the original
+    touch identifier globally so movement continues even if WebKit retargets it. */
+ c.addEventListener('touchstart',e=>{
+  Touch.on=true;
+  let handled=false;
+  for(const t of e.changedTouches){
+   const q=touchPoint(t,c);
+   if(APP.screen!=='game'){
+    /* In standalone mode touchstart is prevented to suppress iOS gestures,
+       so dispatch canvas-menu buttons here instead of relying on a synthetic click. */
+    for(const b of uiButtons){if(!b.disabled&&q.x>=b.x&&q.x<=b.x+b.w&&q.y>=b.y&&q.y<=b.y+b.h){b.cb();handled=true;break;}}
+   }else{
+    beginMobileInput(t.identifier,q.x,q.y);handled=true;
+   }
+  }
+  if(handled)e.preventDefault();
+ },{passive:false});
+ window.addEventListener('touchmove',e=>{
+  for(const t of e.changedTouches){const q=touchPoint(t,c);moveMobileInput(t.identifier,q.x,q.y);}
+  if(Touch.jid>=0||Touch.aimId>=0||Touch.targetId>=0)e.preventDefault();
+ },{passive:false});
+ window.addEventListener('touchend',e=>{
+  for(const t of e.changedTouches)endMobileInput(t.identifier,false);
+  e.preventDefault();
+ },{passive:false});
+ window.addEventListener('touchcancel',e=>{
+  for(const t of e.changedTouches)endMobileInput(t.identifier,true);
+  e.preventDefault();
+ },{passive:false});
 }
 },
 axis(){let x=0,y=0;if(this.keys['KeyW']||this.keys['ArrowUp'])y-=1;if(this.keys['KeyS']||this.keys['ArrowDown'])y+=1;if(this.keys['KeyA']||this.keys['ArrowLeft'])x-=1;if(this.keys['KeyD']||this.keys['ArrowRight'])x+=1;
@@ -1870,8 +1901,18 @@ async function toggleFullscreen(){
 fullscreenBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggleFullscreen();});
 document.addEventListener('fullscreenchange',updateFullscreenButton);
 document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
-function resize(){const vw=window.visualViewport?window.visualViewport.width:window.innerWidth;const vh=window.visualViewport?window.visualViewport.height:window.innerHeight;canvas.style.width=Math.max(1,vw)+'px';canvas.style.height=Math.max(1,vh)+'px';}
-window.addEventListener('resize',resize);if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
+function resize(){
+ /* visualViewport can report stale dimensions during iOS Home Screen startup;
+    prefer the layout viewport for installed apps and fall back safely. */
+ const standalone=!!(navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches));
+ const vv=window.visualViewport;
+ const vw=standalone?window.innerWidth:(vv&&vv.width>0?vv.width:window.innerWidth);
+ const vh=standalone?window.innerHeight:(vv&&vv.height>0?vv.height:window.innerHeight);
+ canvas.style.width=Math.max(1,vw)+'px';canvas.style.height=Math.max(1,vh)+'px';
+}
+window.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,80));
+window.addEventListener('pageshow',resize);if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
+resize();
 window.addEventListener('beforeunload',()=>{if(APP.screen==='game'&&!GameState.playerDead)saveRun();});
 window.addEventListener('pagehide',()=>{if(APP.screen==='game'&&!GameState.playerDead)saveRun();});
 window.addEventListener('blur',()=>{if(APP.screen==='game'&&!GameState.playerDead)APP.screen='pause';});
